@@ -14,6 +14,7 @@ import { CatatProdukDilihat } from "@/components/ProdukTerakhirDilihat";
 import TombolBandingkan from "@/components/TombolBandingkan";
 import FormUlasan from "@/components/FormUlasan";
 import { createSupabasePublicServerClient } from "@/lib/supabase/public-server";
+import { slugKategori } from "@/lib/slug-kategori";
 
 const ambilProduk = cache(async (id) => {
   const supabase = createSupabaseServerClient();
@@ -123,7 +124,11 @@ export default async function HalamanDetailProduk({ params }) {
           <Link href="/" className="text-sm text-teks-lembut underline underline-offset-4 hover:text-utama">
             Kembali ke katalog
           </Link>
-          <p className="text-sm text-teks-lembut">{produk.kategori}</p>
+          {produk.kategori ? (
+            <Link href={`/kategori/${slugKategori(produk.kategori)}`} className="text-sm text-teks-lembut hover:text-utama hover:underline">
+              {produk.kategori}
+            </Link>
+          ) : null}
           <h1 className="text-3xl font-extrabold leading-tight tracking-tight">{produk.nama}</h1>
           {teksBadge ? (
             <p className="self-start rounded-md bg-utama px-3 py-1 text-sm font-bold text-white">
