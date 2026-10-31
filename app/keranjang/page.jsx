@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { formatRupiah } from "@/lib/format";
 import { toko } from "@/lib/toko";
+import { catatKlikWhatsApp } from "@/lib/catat-klik-whatsapp";
 import { useKeranjang } from "@/components/KeranjangProvider";
 import Tombol from "@/components/Tombol";
 
@@ -69,6 +70,7 @@ export default function HalamanKeranjang() {
             href={tautanWhatsApp}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => catatKlikWhatsApp(itemKeranjang.map((item) => item.id))}
             className="inline-flex self-start items-center justify-center rounded-lg bg-utama px-5 py-3 font-semibold text-white hover:bg-utama-gelap"
           >
             Pesan semua via WhatsApp

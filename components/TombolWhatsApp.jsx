@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { formatRupiah } from "@/lib/format";
 import { toko } from "@/lib/toko";
+import { catatKlikWhatsApp } from "@/lib/catat-klik-whatsapp";
 
 export default function TombolWhatsApp({ produk }) {
   const [jumlah, setJumlah] = useState(1);
@@ -34,6 +35,7 @@ export default function TombolWhatsApp({ produk }) {
         href={tautanWhatsApp}
         target="_blank"
         rel="noopener noreferrer"
+        onClick={() => catatKlikWhatsApp([produk.id])}
         className="inline-flex w-full items-center justify-center rounded-lg bg-utama px-5 py-3 font-semibold text-white hover:bg-utama-gelap sm:w-auto"
       >
         Pesan via WhatsApp

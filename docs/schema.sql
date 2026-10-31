@@ -49,6 +49,22 @@ create policy "admin_ubah_produk" on public.produk
 create policy "admin_hapus_produk" on public.produk
   for delete to authenticated using (true);
 
+-- Catatan klik pesan WhatsApp. Baris hanya menyimpan produk dan waktu, tanpa data pengunjung.
+create table if not exists public.klik_whatsapp (
+  id bigint generated always as identity primary key,
+  produk_id bigint not null references public.produk (id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists klik_whatsapp_produk_dibuat
+  on public.klik_whatsapp (produk_id, created_at desc);
+
+alter table public.klik_whatsapp enable row level security;
+drop policy if exists "admin_baca_klik_whatsapp" on public.klik_whatsapp;
+
+create policy "admin_baca_klik_whatsapp" on public.klik_whatsapp
+  for select to authenticated using (true);
+
 -- Ulasan publik: pengunjung hanya dapat membaca ulasan yang ditampilkan dan menambahkan ulasan baru.
 create table if not exists public.ulasan (
   id bigint generated always as identity primary key,
