@@ -14,6 +14,7 @@ create table if not exists public.produk (
   kategori text,
   stok integer check (stok >= 0),
   aktif boolean not null default true,
+  urutan integer,
   created_at timestamptz not null default now()
 );
 
@@ -26,6 +27,90 @@ alter table public.produk
   add column if not exists badge text check (badge in ('baru', 'terlaris'));
 alter table public.produk
   add column if not exists aktif boolean not null default true;
+alter table public.produk
+  add column if not exists urutan integer;
+
+-- Isi urutan produk lama secara konsisten sebelum mengaktifkan nilai wajib dan default.
+with urutan_awal as (
+  select id, row_number() over (order by created_at asc, id asc)::integer as nomor
+  from public.produk
+)
+update public.produk
+set urutan = urutan_awal.nomor
+from urutan_awal
+where public.produk.id = urutan_awal.id and public.produk.urutan is null;
+
+alter table public.produk alter column urutan set not null;
+
+create sequence if not exists public.produk_urutan_seq;
+select setval(
+  'public.produk_urutan_seq'::regclass,
+  greatest(coalesce(max(urutan), 0), 1),
+  coalesce(max(urutan), 0) > 0
+)
+from public.produk;
+alter table public.produk alter column urutan
+  set default nextval('public.produk_urutan_seq'::regclass);
+grant usage, select on sequence public.produk_urutan_seq to authenticated;
+create index if not exists produk_urutan_id on public.produk (urutan, id);
+
+-- Bersihkan trigger dari versi migrasi sebelumnya jika schema dijalankan ulang.
+drop trigger if exists produk_tetapkan_urutan on public.produk;
+drop function if exists public.tetapkan_urutan_produk();
+
+create or replace function public.atur_urutan_produk(p_produk_id bigint, p_arah text)
+returns text
+language plpgsql
+set search_path = ''
+as $$
+declare
+  produk_dipilih public.produk%rowtype;
+  produk_tetangga public.produk%rowtype;
+begin
+  if auth.uid() is null then
+    raise exception 'Sesi admin diperlukan.' using errcode = '42501';
+  end if;
+  if p_arah is null or p_arah not in ('naik', 'turun') then
+    return 'invalid_direction';
+  end if;
+
+  -- Kunci daftar agar dua aksi pengurutan tidak saling menimpa.
+  perform id from public.produk order by urutan, id for update;
+
+  select * into produk_dipilih
+  from public.produk
+  where id = p_produk_id;
+  if not found then return 'not_found'; end if;
+
+  if p_arah = 'naik' then
+    select * into produk_tetangga
+    from public.produk
+    where (urutan, id) < (produk_dipilih.urutan, produk_dipilih.id)
+    order by urutan desc, id desc
+    limit 1;
+  else
+    select * into produk_tetangga
+    from public.produk
+    where (urutan, id) > (produk_dipilih.urutan, produk_dipilih.id)
+    order by urutan asc, id asc
+    limit 1;
+  end if;
+  if not found then return 'boundary'; end if;
+
+  update public.produk
+  set urutan = case
+    when id = produk_dipilih.id then produk_tetangga.urutan
+    when id = produk_tetangga.id then produk_dipilih.urutan
+    else urutan
+  end
+  where id in (produk_dipilih.id, produk_tetangga.id);
+
+  return 'updated';
+end;
+$$;
+
+revoke all on function public.atur_urutan_produk(bigint, text) from public;
+grant execute on function public.atur_urutan_produk(bigint, text) to authenticated;
 
 -- 2. Row Level Security
 -- Tidak ada izin untuk publik: akses langsung ke tabel dari luar aplikasi ditolak.

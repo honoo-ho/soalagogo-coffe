@@ -604,6 +604,50 @@ export async function ubahStatusProduk(formData) {
   redirect("/admin?status=status_updated");
 }
 
+export async function ubahUrutanProduk(formData) {
+  let supabase;
+  let user;
+
+  try {
+    supabase = await createSupabaseSessionClient();
+    const { data, error } = await supabase.auth.getUser();
+    user = error ? null : data.user;
+  } catch {
+    user = null;
+  }
+
+  if (!user) redirect("/admin/login");
+
+  const id = String(formData.get("id") ?? "").trim();
+  const arah = String(formData.get("arah") ?? "");
+  if (!/^\d+$/.test(id)) redirect("/admin?error=invalid_id");
+  if (arah !== "naik" && arah !== "turun") redirect("/admin?error=order_failed");
+
+  let hasil;
+  try {
+    hasil = await supabase.rpc("atur_urutan_produk", {
+      p_produk_id: id,
+      p_arah: arah,
+    });
+  } catch (error) {
+    console.error("Gagal mengubah urutan produk:", error?.message ?? error);
+    redirect("/admin?error=order_failed");
+  }
+
+  if (hasil.error) {
+    console.error("Gagal mengubah urutan produk:", hasil.error.message);
+    redirect("/admin?error=order_failed");
+  }
+  if (hasil.data === "not_found") redirect("/admin?error=not_found");
+  if (hasil.data === "boundary") redirect("/admin?status=order_boundary");
+  if (hasil.data !== "updated") redirect("/admin?error=order_failed");
+
+  revalidatePath("/", "layout");
+  revalidatePath("/admin");
+  revalidatePath("/admin/aktivitas");
+  redirect(`/admin?status=order_${arah}`);
+}
+
 export async function buatDeskripsiProduk(nama, kategori) {
   let supabase;
   let user;

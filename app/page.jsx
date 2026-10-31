@@ -13,9 +13,9 @@ export default async function HalamanKatalog({ searchParams }) {
   const pencarian = typeof params.q === "string" ? params.q.trim() : "";
   const kategoriAktif = typeof params.kategori === "string" ? params.kategori : "";
   const pilihanUrutan = typeof params.urut === "string" ? params.urut : "";
-  const urutanAktif = ["termurah", "termahal", "terbaru"].includes(pilihanUrutan)
+  const urutanAktif = ["unggulan", "termurah", "termahal", "terbaru"].includes(pilihanUrutan)
     ? pilihanUrutan
-    : "terbaru";
+    : "unggulan";
   const nilaiHalaman = typeof params.page === "string" ? Number(params.page) : 1;
   const halamanDiminta = Number.isSafeInteger(nilaiHalaman) && nilaiHalaman > 0 ? nilaiHalaman : 1;
   const ukuranHalaman = 12;
@@ -76,8 +76,10 @@ export default async function HalamanKatalog({ searchParams }) {
         queryProduk = queryProduk.order("harga", { ascending: true });
       } else if (urutanAktif === "termahal") {
         queryProduk = queryProduk.order("harga", { ascending: false });
-      } else {
+      } else if (urutanAktif === "terbaru") {
         queryProduk = queryProduk.order("created_at", { ascending: false });
+      } else {
+        queryProduk = queryProduk.order("urutan", { ascending: true }).order("id", { ascending: true });
       }
 
       return queryProduk;
@@ -197,6 +199,7 @@ export default async function HalamanKatalog({ searchParams }) {
               defaultValue={urutanAktif}
               className="w-full rounded-lg border border-garis bg-latar px-3 py-2.5 text-base text-teks focus:border-utama focus:outline-none"
             >
+              <option value="unggulan">Urutan pilihan toko</option>
               <option value="termurah">Termurah</option>
               <option value="termahal">Termahal</option>
               <option value="terbaru">Terbaru</option>
@@ -204,7 +207,7 @@ export default async function HalamanKatalog({ searchParams }) {
           </label>
           <div className="flex items-center gap-3">
             <Tombol type="submit">Terapkan</Tombol>
-            {pencarian || kategoriAktif || urutanAktif !== "terbaru" ? (
+            {pencarian || kategoriAktif || urutanAktif !== "unggulan" ? (
               <a href="/" className="text-sm font-semibold text-utama hover:text-utama-gelap">
                 Hapus filter
               </a>

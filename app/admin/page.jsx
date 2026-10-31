@@ -64,7 +64,7 @@ export default async function HalamanAdmin({ searchParams }) {
         const teksAman = kataKunci.replace(/[\\%_*]/g, "\\$&");
         query = query.ilike("nama", `%${teksAman}%`);
       }
-      return query.order("id", { ascending: true });
+      return query.order("urutan", { ascending: true }).order("id", { ascending: true });
     }
 
     let hasilDaftar = await buatQueryDaftar().range(
@@ -180,11 +180,19 @@ export default async function HalamanAdmin({ searchParams }) {
                 ? "Status produk baru saja berubah. Muat ulang halaman sebelum mencoba lagi."
                 : statusError === "status_failed"
                   ? "Status produk gagal diubah. Muat ulang halaman dan coba lagi."
+                  : statusError === "order_failed"
+                    ? "Urutan produk gagal diubah. Pastikan skema database terbaru sudah diterapkan, lalu coba lagi."
                   : "Produk gagal dihapus. Muat ulang halaman dan coba lagi."}
         </p>
       ) : null}
       {status === "status_updated" ? (
         <p role="status" className="text-sm text-utama">Status produk berhasil diperbarui.</p>
+      ) : null}
+      {status === "order_up" || status === "order_down" ? (
+        <p role="status" className="text-sm text-utama">Urutan produk berhasil diperbarui.</p>
+      ) : null}
+      {status === "order_boundary" ? (
+        <p role="status" className="text-sm text-teks-lembut">Produk sudah berada di batas urutan tersebut.</p>
       ) : null}
       {errorQuery ? (
         <p role="alert" className="text-bahaya">

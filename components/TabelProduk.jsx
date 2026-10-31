@@ -2,18 +2,19 @@ import { formatRupiah } from "@/lib/format";
 import { ambilFotoProduk } from "@/lib/foto-produk";
 import Tombol from "@/components/Tombol";
 import FormHapusProduk from "@/components/FormHapusProduk";
-import { ubahStatusProduk } from "@/app/admin/actions";
+import { ubahStatusProduk, ubahUrutanProduk } from "@/app/admin/actions";
 
 export default function TabelProduk({ daftarProduk }) {
   return (
     <div className="overflow-x-auto rounded-2xl border border-garis">
-      <table className="w-full min-w-[720px] text-left text-sm">
+      <table className="w-full min-w-[840px] text-left text-sm">
         <thead className="bg-permukaan text-teks-lembut">
           <tr>
             <th className="px-4 py-3 font-semibold">Produk</th>
             <th className="px-4 py-3 font-semibold">Kategori</th>
             <th className="px-4 py-3 font-semibold">Harga</th>
             <th className="px-4 py-3 font-semibold">Status</th>
+            <th className="px-4 py-3 font-semibold">Urutan</th>
             <th className="px-4 py-3 font-semibold">
               <span className="sr-only">Aksi</span>
             </th>
@@ -38,6 +39,21 @@ export default function TabelProduk({ daftarProduk }) {
                 <span className={produk.aktif ? "text-utama" : "text-teks-lembut"}>
                   {produk.aktif ? "Aktif" : "Nonaktif"}
                 </span>
+              </td>
+              <td className="px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <span className="min-w-6 text-center font-semibold">{produk.urutan}</span>
+                  <form action={ubahUrutanProduk}>
+                    <input type="hidden" name="id" value={produk.id} />
+                    <input type="hidden" name="arah" value="naik" />
+                    <Tombol type="submit" varian="garis" aria-label={`Naikkan ${produk.nama}`} className="px-2">Naik</Tombol>
+                  </form>
+                  <form action={ubahUrutanProduk}>
+                    <input type="hidden" name="id" value={produk.id} />
+                    <input type="hidden" name="arah" value="turun" />
+                    <Tombol type="submit" varian="garis" aria-label={`Turunkan ${produk.nama}`} className="px-2">Turun</Tombol>
+                  </form>
+                </div>
               </td>
               <td className="px-4 py-3">
                 <div className="flex justify-end gap-2">
