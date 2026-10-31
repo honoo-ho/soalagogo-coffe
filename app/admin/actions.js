@@ -66,3 +66,51 @@ export async function gantiPasswordAdmin(formData) {
 
   redirect(`/admin/password?status=${status}`);
 }
+
+export async function simpanProduk(formData) {
+  let supabase;
+  let user;
+
+  try {
+    supabase = await createSupabaseSessionClient();
+    const { data, error } = await supabase.auth.getUser();
+    user = error ? null : data.user;
+  } catch {
+    user = null;
+  }
+
+  if (!user) {
+    redirect("/admin/login");
+  }
+
+  const nama = String(formData.get("nama") ?? "").trim();
+  const hargaText = String(formData.get("harga") ?? "").trim();
+  const harga = Number(hargaText);
+
+  if (!nama || !hargaText || !Number.isInteger(harga) || harga < 0) {
+    redirect("/admin/produk/baru?error=invalid_data");
+  }
+
+  const produk = {
+    nama,
+    harga,
+    kategori: String(formData.get("kategori") ?? "").trim() || null,
+    foto_url: String(formData.get("foto_url") ?? "").trim() || null,
+    deskripsi: String(formData.get("deskripsi") ?? "").trim() || null,
+  };
+
+  let error;
+  try {
+    ({ error } = await supabase.from("produk").insert(produk));
+  } catch (insertError) {
+    console.error("Gagal menyimpan produk:", insertError);
+    redirect("/admin/produk/baru?error=save_failed");
+  }
+
+  if (error) {
+    console.error("Gagal menyimpan produk:", error.message);
+    redirect("/admin/produk/baru?error=save_failed");
+  }
+
+  redirect("/admin");
+}
