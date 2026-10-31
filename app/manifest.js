@@ -1,11 +1,12 @@
-import { toko } from "@/lib/toko";
+import { ambilPengaturanToko } from "@/lib/pengaturan-toko";
 
-export default function manifest() {
+export default async function manifest() {
+  const pengaturanToko = await ambilPengaturanToko();
   return {
     id: "/",
-    name: toko.nama,
+    name: pengaturanToko.nama,
     short_name: "Katalog",
-    description: toko.tagline,
+    description: pengaturanToko.tagline,
     start_url: "/",
     scope: "/",
     display: "standalone",

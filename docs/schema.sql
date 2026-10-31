@@ -94,6 +94,34 @@ create policy "admin_tambah_banner" on public.banner_promo
 create policy "admin_ubah_banner" on public.banner_promo
   for update to authenticated using (true) with check (true);
 
+-- Pengaturan identitas toko. Satu baris publik dipakai sebagai sumber konfigurasi toko.
+create table if not exists public.pengaturan_toko (
+  id smallint primary key default 1 check (id = 1),
+  nama_toko text not null check (nama_toko = btrim(nama_toko) and length(nama_toko) between 1 and 120),
+  nomor_whatsapp text not null check (nomor_whatsapp ~ '^[1-9][0-9]{7,14}$'),
+  alamat text not null check (alamat = btrim(alamat) and length(alamat) between 1 and 250),
+  jam_buka text not null check (jam_buka = btrim(jam_buka) and length(jam_buka) between 1 and 120),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.pengaturan_toko enable row level security;
+drop policy if exists "pengunjung_baca_pengaturan_toko" on public.pengaturan_toko;
+drop policy if exists "admin_baca_pengaturan_toko" on public.pengaturan_toko;
+drop policy if exists "admin_tambah_pengaturan_toko" on public.pengaturan_toko;
+drop policy if exists "admin_ubah_pengaturan_toko" on public.pengaturan_toko;
+
+create policy "pengunjung_baca_pengaturan_toko" on public.pengaturan_toko
+  for select to anon, authenticated using (true);
+
+create policy "admin_baca_pengaturan_toko" on public.pengaturan_toko
+  for select to authenticated using (true);
+
+create policy "admin_tambah_pengaturan_toko" on public.pengaturan_toko
+  for insert to authenticated with check (true);
+
+create policy "admin_ubah_pengaturan_toko" on public.pengaturan_toko
+  for update to authenticated using (true) with check (true);
+
 -- Ulasan publik: pengunjung hanya dapat membaca ulasan yang ditampilkan dan menambahkan ulasan baru.
 create table if not exists public.ulasan (
   id bigint generated always as identity primary key,

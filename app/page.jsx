@@ -5,8 +5,10 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { toko } from "@/lib/toko";
 import { BagianTerakhirDilihat } from "@/components/ProdukTerakhirDilihat";
 import { createSupabasePublicServerClient } from "@/lib/supabase/public-server";
+import { ambilPengaturanToko } from "@/lib/pengaturan-toko";
 
 export default async function HalamanKatalog({ searchParams }) {
+  const pengaturanToko = await ambilPengaturanToko();
   const params = await searchParams;
   const pencarian = typeof params.q === "string" ? params.q.trim() : "";
   const kategoriAktif = typeof params.kategori === "string" ? params.kategori : "";
@@ -127,10 +129,10 @@ export default async function HalamanKatalog({ searchParams }) {
     <>
       <section className="py-10 sm:py-14">
         <h1 className="max-w-2xl text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl">
-          {toko.nama}
+          {pengaturanToko.nama}
         </h1>
         <p className="mt-3 max-w-xl text-lg text-teks-lembut">{toko.tagline}</p>
-        <p className="mt-4 text-sm text-teks-lembut">{toko.jamBuka}</p>
+        <p className="mt-4 text-sm text-teks-lembut">{pengaturanToko.jamBuka}</p>
       </section>
 
       {pesanErrorBanner ? (

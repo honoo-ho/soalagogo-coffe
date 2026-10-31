@@ -2,9 +2,9 @@
 
 import { useMemo } from "react";
 import { formatRupiah } from "@/lib/format";
-import { toko } from "@/lib/toko";
 import { catatKlikWhatsApp } from "@/lib/catat-klik-whatsapp";
 import { useKeranjang } from "@/components/KeranjangProvider";
+import { usePengaturanToko } from "@/components/PengaturanTokoProvider";
 import Tombol from "@/components/Tombol";
 
 function hargaAktif(item) {
@@ -15,6 +15,7 @@ function hargaAktif(item) {
 
 export default function HalamanKeranjang() {
   const { itemKeranjang, siap, ubahJumlah, hapus } = useKeranjang();
+  const pengaturanToko = usePengaturanToko();
   const total = itemKeranjang.reduce((jumlah, item) => jumlah + hargaAktif(item) * item.jumlah, 0);
   const pesan = useMemo(() => {
     const rincian = itemKeranjang.map((item) => {
@@ -23,7 +24,7 @@ export default function HalamanKeranjang() {
     });
     return `Halo, saya ingin memesan:\n${rincian.join("\n")}\n\nTotal: ${formatRupiah(total)}.`;
   }, [itemKeranjang, total]);
-  const tautanWhatsApp = `https://wa.me/${toko.nomorWhatsApp}?text=${encodeURIComponent(pesan)}`;
+  const tautanWhatsApp = `https://wa.me/${pengaturanToko.nomorWhatsApp}?text=${encodeURIComponent(pesan)}`;
 
   if (!siap) {
     return <section className="py-8"><h1 className="text-2xl font-extrabold">Keranjang</h1></section>;

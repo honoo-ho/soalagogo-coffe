@@ -11,7 +11,7 @@ import { formatRupiah } from "@/lib/format";
 import { ambilFotoProduk } from "@/lib/foto-produk";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSiteOrigin } from "@/lib/site-url";
-import { toko } from "@/lib/toko";
+import { ambilPengaturanToko } from "@/lib/pengaturan-toko";
 import { CatatProdukDilihat } from "@/components/ProdukTerakhirDilihat";
 import TombolBandingkan from "@/components/TombolBandingkan";
 import FormUlasan from "@/components/FormUlasan";
@@ -34,9 +34,10 @@ export async function generateMetadata({ params }) {
   const { id } = await params;
   const produk = await ambilProduk(id);
   if (!produk) notFound();
+  const pengaturanToko = await ambilPengaturanToko();
 
   const deskripsi = produk.deskripsi?.trim().replace(/\s+/g, " ").slice(0, 200)
-    || `Lihat ${produk.nama} di ${toko.nama}.`;
+    || `Lihat ${produk.nama} di ${pengaturanToko.nama}.`;
   const asal = await getSiteOrigin();
   const foto = ambilFotoProduk(produk.foto_url)[0];
   let urlFoto;
@@ -54,7 +55,7 @@ export async function generateMetadata({ params }) {
 
   return {
     metadataBase: new URL(asal),
-    title: `${produk.nama} | ${toko.nama}`,
+    title: `${produk.nama} | ${pengaturanToko.nama}`,
     description: deskripsi,
     openGraph: {
       title: produk.nama,
