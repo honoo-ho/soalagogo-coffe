@@ -19,6 +19,9 @@ export default function NavAdmin() {
       <Link href="/admin/pengaturan" className="font-semibold hover:text-utama">
         Pengaturan toko
       </Link>
+      <Link href="/admin/akun" className="font-semibold hover:text-utama">
+        Akun admin
+      </Link>
       <Link href="/admin/password" className="font-semibold hover:text-utama">
         Ganti password
       </Link>
