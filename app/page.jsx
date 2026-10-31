@@ -1,4 +1,5 @@
 import KartuProduk from "@/components/KartuProduk";
+import Link from "next/link";
 import Tombol from "@/components/Tombol";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { toko } from "@/lib/toko";
@@ -11,13 +12,18 @@ export default async function HalamanKatalog({ searchParams }) {
   const urutanAktif = ["termurah", "termahal", "terbaru"].includes(pilihanUrutan)
     ? pilihanUrutan
     : "terbaru";
+  const nilaiHalaman = typeof params.page === "string" ? Number(params.page) : 1;
+  const halamanDiminta = Number.isSafeInteger(nilaiHalaman) && nilaiHalaman > 0 ? nilaiHalaman : 1;
+  const ukuranHalaman = 12;
   let daftarProduk = [];
   let daftarKategori = [];
   let pesanError = "";
+  let jumlahProduk = 0;
+  let totalHalaman = 1;
+  let halamanAktif = halamanDiminta;
 
   try {
     const supabase = createSupabaseServerClient();
-    let queryProduk = supabase.from("produk").select("*");
     const { data: kategoriData, error: errorKategori } = await supabase
       .from("produk")
       .select("kategori")
@@ -31,36 +37,69 @@ export default async function HalamanKatalog({ searchParams }) {
       (a, b) => a.localeCompare(b, "id")
     );
 
-    if (kategoriAktif) {
-      queryProduk = queryProduk.eq("kategori", kategoriAktif);
+    function buatQueryProduk() {
+      let queryProduk = supabase.from("produk").select("*", { count: "exact" });
+
+      if (kategoriAktif) {
+        queryProduk = queryProduk.eq("kategori", kategoriAktif);
+      }
+
+      if (pencarian) {
+        const teksPencarian = pencarian.replace(/[\\%_*]/g, "\\$&");
+        queryProduk = queryProduk.ilike("nama", `%${teksPencarian}%`);
+      }
+
+      if (urutanAktif === "termurah") {
+        queryProduk = queryProduk.order("harga", { ascending: true });
+      } else if (urutanAktif === "termahal") {
+        queryProduk = queryProduk.order("harga", { ascending: false });
+      } else {
+        queryProduk = queryProduk.order("created_at", { ascending: false });
+      }
+
+      return queryProduk;
     }
 
-    if (pencarian) {
-      const teksPencarian = pencarian.replace(/[\\%_*]/g, "\\$&");
-      queryProduk = queryProduk.ilike("nama", `%${teksPencarian}%`);
+    let hasilQuery = await buatQueryProduk().range(
+      (halamanDiminta - 1) * ukuranHalaman,
+      halamanDiminta * ukuranHalaman - 1
+    );
+
+    if (hasilQuery.error) {
+      throw hasilQuery.error;
     }
 
-    if (urutanAktif === "termurah") {
-      queryProduk = queryProduk.order("harga", { ascending: true });
-    } else if (urutanAktif === "termahal") {
-      queryProduk = queryProduk.order("harga", { ascending: false });
-    } else {
-      queryProduk = queryProduk.order("created_at", { ascending: false });
+    jumlahProduk = hasilQuery.count ?? 0;
+    totalHalaman = Math.max(1, Math.ceil(jumlahProduk / ukuranHalaman));
+    halamanAktif = Math.min(halamanDiminta, totalHalaman);
+
+    if (halamanAktif !== halamanDiminta) {
+      hasilQuery = await buatQueryProduk().range(
+        (halamanAktif - 1) * ukuranHalaman,
+        halamanAktif * ukuranHalaman - 1
+      );
+
+      if (hasilQuery.error) {
+        throw hasilQuery.error;
+      }
     }
 
-    const { data, error } = await queryProduk;
-
-    if (error) {
-      throw error;
-    }
-
-    daftarProduk = data ?? [];
+    daftarProduk = hasilQuery.data ?? [];
   } catch (error) {
     console.error("Gagal mengambil daftar produk dari Supabase:", error);
     pesanError =
       error instanceof Error && error.message.startsWith("Konfigurasi Supabase")
         ? error.message
         : "Produk gagal dimuat. Silakan coba lagi nanti.";
+  }
+
+  function tautanHalaman(nomorHalaman) {
+    const query = new URLSearchParams();
+    if (pencarian) query.set("q", pencarian);
+    if (kategoriAktif) query.set("kategori", kategoriAktif);
+    query.set("urut", urutanAktif);
+    query.set("page", String(nomorHalaman));
+    return `/?${query.toString()}`;
   }
 
   return (
@@ -139,6 +178,37 @@ export default async function HalamanKatalog({ searchParams }) {
             ))}
           </div>
         )}
+        {!pesanError && totalHalaman > 1 ? (
+          <nav aria-label="Navigasi halaman produk" className="flex items-center justify-between gap-4">
+            {halamanAktif > 1 ? (
+              <Link
+                href={tautanHalaman(halamanAktif - 1)}
+                className="font-semibold text-utama hover:text-utama-gelap"
+              >
+                Sebelumnya
+              </Link>
+            ) : (
+              <span aria-disabled="true" className="text-teks-lembut">
+                Sebelumnya
+              </span>
+            )}
+            <p aria-live="polite" className="text-sm text-teks-lembut">
+              Halaman {halamanAktif} dari {totalHalaman} ({jumlahProduk} produk)
+            </p>
+            {halamanAktif < totalHalaman ? (
+              <Link
+                href={tautanHalaman(halamanAktif + 1)}
+                className="font-semibold text-utama hover:text-utama-gelap"
+              >
+                Berikutnya
+              </Link>
+            ) : (
+              <span aria-disabled="true" className="text-teks-lembut">
+                Berikutnya
+              </span>
+            )}
+          </nav>
+        ) : null}
       </section>
     </>
   );
