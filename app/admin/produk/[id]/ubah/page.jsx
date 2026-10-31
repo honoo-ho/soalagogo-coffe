@@ -30,9 +30,17 @@ export default async function HalamanUbahProduk({ params, searchParams }) {
         <p role="alert" className="text-sm text-bahaya">
           {statusError === "invalid_data"
             ? "Isi nama produk dan masukkan harga bilangan bulat minimal 0. Harga diskon, jika diisi, harus berupa bilangan bulat di bawah harga normal."
-            : statusError === "not_found"
-              ? "Produk tidak ditemukan atau sudah dihapus."
-              : "Perubahan produk gagal disimpan. Periksa data dan coba lagi."}
+            : statusError === "invalid_image"
+              ? "File foto harus berupa JPG, PNG, WebP, atau GIF yang valid."
+              : statusError === "image_too_large"
+                ? "Ukuran total foto dalam satu kali unggah maksimal 4 MB."
+                : statusError === "too_many_images"
+                  ? "Pilih maksimal 10 foto dalam satu kali unggah."
+                  : statusError === "upload_failed"
+                    ? "Foto gagal diunggah. Pastikan bucket foto-produk di Supabase sudah disiapkan."
+                    : statusError === "not_found"
+                      ? "Produk tidak ditemukan atau sudah dihapus."
+                      : "Perubahan produk gagal disimpan. Periksa data dan coba lagi."}
         </p>
       ) : null}
       <FormProduk action={ubahProduk} produk={produk} labelTombol="Simpan perubahan" />

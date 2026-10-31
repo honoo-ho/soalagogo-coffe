@@ -80,6 +80,16 @@ export default function FormProduk({ produk = {}, labelTombol, action }) {
         defaultValue={produk.stok ?? ""}
       />
       <Input
+        label="Unggah foto produk"
+        name="foto_file"
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        multiple
+      />
+      <p className="-mt-3 text-xs text-teks-lembut">
+        JPG, PNG, WebP, atau GIF. Maksimal 4 MB total sekali unggah, hingga 10 foto.
+      </p>
+      <Input
         label="Link foto (satu per baris)"
         name="foto_url"
         textarea

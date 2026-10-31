@@ -46,7 +46,36 @@ create policy "admin_ubah_produk" on public.produk
 create policy "admin_hapus_produk" on public.produk
   for delete to authenticated using (true);
 
--- 3. Data produk awal (hanya diisi jika tabel masih kosong)
+-- 3. Supabase Storage untuk foto produk.
+-- Bucket publik agar URL foto dapat ditampilkan di katalog; unggah/hapus dibatasi ke pengguna login.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'foto-produk',
+  'foto-produk',
+  true,
+  4194304,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+on conflict (id) do update set
+  name = excluded.name,
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "admin_unggah_foto_produk" on storage.objects;
+drop policy if exists "admin_hapus_foto_produk" on storage.objects;
+drop policy if exists "admin_baca_foto_produk" on storage.objects;
+
+create policy "admin_baca_foto_produk" on storage.objects
+  for select to authenticated using (bucket_id = 'foto-produk');
+
+create policy "admin_unggah_foto_produk" on storage.objects
+  for insert to authenticated with check (bucket_id = 'foto-produk');
+
+create policy "admin_hapus_foto_produk" on storage.objects
+  for delete to authenticated using (bucket_id = 'foto-produk');
+
+-- 4. Data produk awal (hanya diisi jika tabel masih kosong)
 insert into public.produk (nama, harga, deskripsi, foto_url, kategori)
 select * from (values
   ('Kopi Bubuk Robusta 250 g', 45000, 'Biji robusta disangrai sedang lalu digiling halus. Cocok untuk kopi tubruk dan kopi susu.', '/produk/kopi.svg', 'Minuman'),
@@ -58,7 +87,7 @@ select * from (values
 ) as data_awal (nama, harga, deskripsi, foto_url, kategori)
 where not exists (select 1 from public.produk);
 
--- 4. Data tambahan untuk menguji paginasi, urutan, filter, dan pencarian (54 produk).
+-- 5. Data tambahan untuk menguji paginasi, urutan, filter, dan pencarian (54 produk).
 --    Bersama data awal jadi 60 produk, 10 per kategori, dengan harga dan waktu dibuat berbeda.
 --    Hanya diisi sekali; kalau tidak dibutuhkan, hapus dengan:
 --    delete from public.produk where deskripsi like 'Contoh untuk uji paginasi%';

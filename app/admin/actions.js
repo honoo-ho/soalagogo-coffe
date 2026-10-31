@@ -1,7 +1,107 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { createSupabaseSessionClient } from "@/lib/supabase/session";
+
+const BUCKET_FOTO_PRODUK = "foto-produk";
+const UKURAN_MAKS_FOTO = 4 * 1024 * 1024;
+const UKURAN_MAKS_TOTAL_FOTO = 4 * 1024 * 1024;
+const JUMLAH_MAKS_FOTO = 10;
+const EKSTENSI_FOTO = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+};
+
+function signatureGambarValid(tipe, bytes) {
+  if (tipe === "image/jpeg") return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  if (tipe === "image/png") {
+    return [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((byte, index) => bytes[index] === byte);
+  }
+  if (tipe === "image/webp") {
+    return String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" &&
+      String.fromCharCode(...bytes.slice(8, 12)) === "WEBP";
+  }
+  if (tipe === "image/gif") {
+    const signature = String.fromCharCode(...bytes.slice(0, 6));
+    return signature === "GIF87a" || signature === "GIF89a";
+  }
+  return false;
+}
+
+async function validasiFileFoto(formData, pathKembali) {
+  const files = formData
+    .getAll("foto_file")
+    .filter((file) => typeof file !== "string" && file.name);
+
+  if (files.length > JUMLAH_MAKS_FOTO) {
+    redirect(`${pathKembali}?error=too_many_images`);
+  }
+
+  if (files.reduce((total, file) => total + file.size, 0) > UKURAN_MAKS_TOTAL_FOTO) {
+    redirect(`${pathKembali}?error=image_too_large`);
+  }
+
+  for (const file of files) {
+    if (!EKSTENSI_FOTO[file.type] || file.size === 0) {
+      redirect(`${pathKembali}?error=invalid_image`);
+    }
+    if (file.size > UKURAN_MAKS_FOTO) {
+      redirect(`${pathKembali}?error=image_too_large`);
+    }
+
+    const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+    if (!signatureGambarValid(file.type, bytes)) {
+      redirect(`${pathKembali}?error=invalid_image`);
+    }
+  }
+
+  return files;
+}
+
+async function hapusUploadFoto(supabase, paths) {
+  if (paths.length === 0) return;
+  try {
+    const { error } = await supabase.storage.from(BUCKET_FOTO_PRODUK).remove(paths);
+    if (error) console.error("Gagal membersihkan upload foto:", error.message);
+  } catch (error) {
+    console.error("Gagal membersihkan upload foto:", error);
+  }
+}
+
+async function unggahFileFoto(supabase, files, pathKembali) {
+  const urlFoto = [];
+  const paths = [];
+
+  for (const file of files) {
+    const path = `${randomUUID()}.${EKSTENSI_FOTO[file.type]}`;
+    paths.push(path);
+    try {
+      const { data, error } = await supabase.storage
+        .from(BUCKET_FOTO_PRODUK)
+        .upload(path, file, { contentType: file.type, cacheControl: "31536000", upsert: false });
+
+      if (error) throw error;
+      urlFoto.push(supabase.storage.from(BUCKET_FOTO_PRODUK).getPublicUrl(data.path).data.publicUrl);
+    } catch (error) {
+      console.error("Gagal mengunggah foto produk:", error?.message ?? error);
+      await hapusUploadFoto(supabase, paths);
+      redirect(`${pathKembali}?error=upload_failed`);
+    }
+  }
+
+  return { urlFoto, paths };
+}
+
+function gabungkanFotoProduk(formData, urlFoto) {
+  const fotoManual = String(formData.get("foto_url") ?? "")
+    .split(/\r?\n/)
+    .map((url) => url.trim())
+    .filter(Boolean);
+  return [...fotoManual, ...urlFoto].join("\n") || null;
+}
 
 export async function masukAdmin(formData) {
   const email = String(formData.get("email") ?? "").trim();
@@ -106,6 +206,9 @@ export async function simpanProduk(formData) {
     redirect("/admin/produk/baru?error=invalid_data");
   }
 
+  const files = await validasiFileFoto(formData, "/admin/produk/baru");
+  const { urlFoto, paths } = await unggahFileFoto(supabase, files, "/admin/produk/baru");
+
   const produk = {
     nama,
     harga,
@@ -113,7 +216,7 @@ export async function simpanProduk(formData) {
     badge,
     stok,
     kategori: String(formData.get("kategori") ?? "").trim() || null,
-    foto_url: String(formData.get("foto_url") ?? "").trim() || null,
+    foto_url: gabungkanFotoProduk(formData, urlFoto),
     deskripsi: String(formData.get("deskripsi") ?? "").trim() || null,
   };
 
@@ -122,11 +225,13 @@ export async function simpanProduk(formData) {
     ({ error } = await supabase.from("produk").insert(produk));
   } catch (insertError) {
     console.error("Gagal menyimpan produk:", insertError);
+    await hapusUploadFoto(supabase, paths);
     redirect("/admin/produk/baru?error=save_failed");
   }
 
   if (error) {
     console.error("Gagal menyimpan produk:", error.message);
+    await hapusUploadFoto(supabase, paths);
     redirect("/admin/produk/baru?error=save_failed");
   }
 
@@ -178,6 +283,9 @@ export async function ubahProduk(formData) {
     redirect(`${pathUbah}?error=invalid_data`);
   }
 
+  const files = await validasiFileFoto(formData, pathUbah);
+  const { urlFoto, paths } = await unggahFileFoto(supabase, files, pathUbah);
+
   const perubahan = {
     nama,
     harga,
@@ -185,7 +293,7 @@ export async function ubahProduk(formData) {
     badge,
     stok,
     kategori: String(formData.get("kategori") ?? "").trim() || null,
-    foto_url: String(formData.get("foto_url") ?? "").trim() || null,
+    foto_url: gabungkanFotoProduk(formData, urlFoto),
     deskripsi: String(formData.get("deskripsi") ?? "").trim() || null,
   };
 
@@ -200,15 +308,18 @@ export async function ubahProduk(formData) {
       .maybeSingle());
   } catch (updateError) {
     console.error("Gagal mengubah produk:", updateError);
+    await hapusUploadFoto(supabase, paths);
     redirect(`${pathUbah}?error=save_failed`);
   }
 
   if (error) {
     console.error("Gagal mengubah produk:", error.message);
+    await hapusUploadFoto(supabase, paths);
     redirect(`${pathUbah}?error=save_failed`);
   }
 
   if (!data) {
+    await hapusUploadFoto(supabase, paths);
     redirect(`${pathUbah}?error=not_found`);
   }
 
