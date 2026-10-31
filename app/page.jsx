@@ -3,6 +3,7 @@ import Link from "next/link";
 import Tombol from "@/components/Tombol";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { toko } from "@/lib/toko";
+import { BagianTerakhirDilihat } from "@/components/ProdukTerakhirDilihat";
 
 export default async function HalamanKatalog({ searchParams }) {
   const params = await searchParams;
@@ -113,6 +114,8 @@ export default async function HalamanKatalog({ searchParams }) {
         <p className="mt-3 max-w-xl text-lg text-teks-lembut">{toko.tagline}</p>
         <p className="mt-4 text-sm text-teks-lembut">{toko.jamBuka}</p>
       </section>
+
+      <BagianTerakhirDilihat />
 
       <section aria-labelledby="judul-produk" className="flex flex-col gap-5">
         <h2 id="judul-produk" className="text-xl font-bold">

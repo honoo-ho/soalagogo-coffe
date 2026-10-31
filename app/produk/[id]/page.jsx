@@ -12,6 +12,7 @@ import { ambilFotoProduk } from "@/lib/foto-produk";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSiteOrigin } from "@/lib/site-url";
 import { toko } from "@/lib/toko";
+import { CatatProdukDilihat } from "@/components/ProdukTerakhirDilihat";
 
 const ambilProduk = cache(async (id) => {
   const supabase = createSupabaseServerClient();
@@ -94,6 +95,7 @@ export default async function HalamanDetailProduk({ params }) {
 
   return (
     <>
+      <CatatProdukDilihat produk={produk} />
       <article className="grid gap-8 py-8 md:grid-cols-2 md:py-12">
         <GaleriProduk nama={produk.nama} foto={ambilFotoProduk(produk.foto_url)} />
         <div className="flex flex-col gap-4">
