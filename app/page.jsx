@@ -4,6 +4,7 @@ import Tombol from "@/components/Tombol";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { toko } from "@/lib/toko";
 import { BagianTerakhirDilihat } from "@/components/ProdukTerakhirDilihat";
+import { createSupabasePublicServerClient } from "@/lib/supabase/public-server";
 
 export default async function HalamanKatalog({ searchParams }) {
   const params = await searchParams;
@@ -22,6 +23,23 @@ export default async function HalamanKatalog({ searchParams }) {
   let jumlahProduk = 0;
   let totalHalaman = 1;
   let halamanAktif = halamanDiminta;
+  let bannerPromo = [];
+  let pesanErrorBanner = "";
+
+  try {
+    const supabasePublik = createSupabasePublicServerClient();
+    const { data, error } = await supabasePublik
+      .from("banner_promo")
+      .select("id,judul,teks,gambar_url,tautan")
+      .eq("aktif", true)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    bannerPromo = data ?? [];
+  } catch (error) {
+    console.error("Gagal mengambil banner promo:", error?.message ?? error);
+    pesanErrorBanner = "Banner promo belum dapat dimuat saat ini.";
+  }
 
   try {
     const supabase = createSupabaseServerClient();
@@ -114,6 +132,29 @@ export default async function HalamanKatalog({ searchParams }) {
         <p className="mt-3 max-w-xl text-lg text-teks-lembut">{toko.tagline}</p>
         <p className="mt-4 text-sm text-teks-lembut">{toko.jamBuka}</p>
       </section>
+
+      {pesanErrorBanner ? (
+        <p role="status" className="mb-6 text-sm text-teks-lembut">{pesanErrorBanner}</p>
+      ) : bannerPromo.length > 0 ? (
+        <section aria-label="Promo toko" className="mb-8 grid gap-4 md:grid-cols-2">
+          {bannerPromo.map((banner) => (
+            <a
+              key={banner.id}
+              href={banner.tautan}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group overflow-hidden rounded-2xl border border-garis bg-permukaan transition-colors hover:border-utama"
+            >
+              <img src={banner.gambar_url} alt={banner.judul} className="aspect-[16/7] w-full object-cover" />
+              <div className="p-4 sm:p-5">
+                <h2 className="text-xl font-extrabold group-hover:text-utama">{banner.judul}</h2>
+                <p className="mt-2 text-teks-lembut">{banner.teks}</p>
+                <span className="mt-3 inline-block text-sm font-semibold text-utama">Lihat promo</span>
+              </div>
+            </a>
+          ))}
+        </section>
+      ) : null}
 
       <BagianTerakhirDilihat />
 

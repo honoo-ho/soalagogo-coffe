@@ -65,6 +65,35 @@ drop policy if exists "admin_baca_klik_whatsapp" on public.klik_whatsapp;
 create policy "admin_baca_klik_whatsapp" on public.klik_whatsapp
   for select to authenticated using (true);
 
+-- Banner promosi yang dapat dikelola admin dan dibaca publik saat aktif.
+create table if not exists public.banner_promo (
+  id bigint generated always as identity primary key,
+  judul text not null check (judul = btrim(judul) and length(judul) between 1 and 120),
+  teks text not null check (teks = btrim(teks) and length(teks) between 1 and 500),
+  gambar_url text not null check (length(gambar_url) between 1 and 2048),
+  tautan text not null check (length(tautan) between 1 and 2048),
+  aktif boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+alter table public.banner_promo enable row level security;
+drop policy if exists "pengunjung_baca_banner_aktif" on public.banner_promo;
+drop policy if exists "admin_baca_semua_banner" on public.banner_promo;
+drop policy if exists "admin_tambah_banner" on public.banner_promo;
+drop policy if exists "admin_ubah_banner" on public.banner_promo;
+
+create policy "pengunjung_baca_banner_aktif" on public.banner_promo
+  for select to anon, authenticated using (aktif = true);
+
+create policy "admin_baca_semua_banner" on public.banner_promo
+  for select to authenticated using (true);
+
+create policy "admin_tambah_banner" on public.banner_promo
+  for insert to authenticated with check (true);
+
+create policy "admin_ubah_banner" on public.banner_promo
+  for update to authenticated using (true) with check (true);
+
 -- Ulasan publik: pengunjung hanya dapat membaca ulasan yang ditampilkan dan menambahkan ulasan baru.
 create table if not exists public.ulasan (
   id bigint generated always as identity primary key,

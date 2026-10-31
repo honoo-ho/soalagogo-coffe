@@ -737,3 +737,136 @@ export async function hapusUlasan(formData) {
   revalidatePath("/admin/ulasan");
   redirect("/admin/ulasan?status=deleted");
 }
+
+async function clientAdminUntukBanner() {
+  let supabase;
+  let user;
+
+  try {
+    supabase = await createSupabaseSessionClient();
+    const { data, error } = await supabase.auth.getUser();
+    user = error ? null : data.user;
+  } catch {
+    user = null;
+  }
+
+  if (!user) redirect("/admin/login");
+  return supabase;
+}
+
+function validasiUrlBanner(nilai, label) {
+  if (!nilai || nilai.length > 2048) return `${label} wajib diisi dan maksimal 2048 karakter.`;
+  try {
+    const url = new URL(nilai);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return `${label} harus memakai URL HTTP atau HTTPS.`;
+  } catch {
+    return `${label} harus berupa URL lengkap yang valid.`;
+  }
+  return null;
+}
+
+function ambilNilaiBanner(formData) {
+  return {
+    id: String(formData.get("id") ?? "").trim(),
+    judul: String(formData.get("judul") ?? "").trim(),
+    teks: String(formData.get("teks") ?? "").trim(),
+    gambar_url: String(formData.get("gambar_url") ?? "").trim(),
+    tautan: String(formData.get("tautan") ?? "").trim(),
+  };
+}
+
+function validasiBanner(nilai) {
+  if (!nilai.judul || nilai.judul.length > 120) return "Judul wajib diisi dan maksimal 120 karakter.";
+  if (!nilai.teks || nilai.teks.length > 500) return "Teks wajib diisi dan maksimal 500 karakter.";
+  return validasiUrlBanner(nilai.gambar_url, "URL gambar") || validasiUrlBanner(nilai.tautan, "Tautan");
+}
+
+export async function simpanBannerPromo(formData) {
+  const supabase = await clientAdminUntukBanner();
+  const nilai = ambilNilaiBanner(formData);
+  const errorValidasi = validasiBanner(nilai);
+  if (errorValidasi) redirect(`/admin/banner?status=invalid&pesan=${encodeURIComponent(errorValidasi)}`);
+
+  const payload = {
+    judul: nilai.judul,
+    teks: nilai.teks,
+    gambar_url: nilai.gambar_url,
+    tautan: nilai.tautan,
+  };
+
+  if (nilai.id) {
+    if (!/^\d+$/.test(nilai.id) || !Number.isSafeInteger(Number(nilai.id))) {
+      redirect("/admin/banner?status=invalid_id");
+    }
+
+    let data;
+    let error;
+    try {
+      ({ data, error } = await supabase
+        .from("banner_promo")
+        .update(payload)
+        .eq("id", nilai.id)
+        .select("id")
+        .maybeSingle());
+    } catch {
+      redirect("/admin/banner?status=save_failed");
+    }
+    if (error) redirect("/admin/banner?status=save_failed");
+    if (!data) redirect("/admin/banner?status=not_found");
+
+    revalidatePath("/");
+    revalidatePath("/admin/banner");
+    redirect("/admin/banner?status=updated");
+  }
+
+  let error;
+  try {
+    ({ error } = await supabase.from("banner_promo").insert(payload));
+  } catch {
+    redirect("/admin/banner?status=save_failed");
+  }
+  if (error) redirect("/admin/banner?status=save_failed");
+
+  revalidatePath("/");
+  revalidatePath("/admin/banner");
+  redirect("/admin/banner?status=created");
+}
+
+export async function ubahStatusBannerPromo(formData) {
+  const supabase = await clientAdminUntukBanner();
+  const id = String(formData.get("id") ?? "").trim();
+  if (!/^\d+$/.test(id) || !Number.isSafeInteger(Number(id))) redirect("/admin/banner?status=invalid_id");
+
+  let banner;
+  let error;
+  try {
+    ({ data: banner, error } = await supabase
+      .from("banner_promo")
+      .select("id,aktif")
+      .eq("id", id)
+      .maybeSingle());
+  } catch {
+    redirect("/admin/banner?status=update_failed");
+  }
+  if (error) redirect("/admin/banner?status=update_failed");
+  if (!banner) redirect("/admin/banner?status=not_found");
+
+  let hasil;
+  try {
+    hasil = await supabase
+      .from("banner_promo")
+      .update({ aktif: !banner.aktif })
+      .eq("id", id)
+      .eq("aktif", banner.aktif)
+      .select("id")
+      .maybeSingle();
+  } catch {
+    redirect("/admin/banner?status=update_failed");
+  }
+  if (hasil.error) redirect("/admin/banner?status=update_failed");
+  if (!hasil.data) redirect("/admin/banner?status=update_conflict");
+
+  revalidatePath("/");
+  revalidatePath("/admin/banner");
+  redirect(`/admin/banner?status=${banner.aktif ? "disabled" : "enabled"}`);
+}
