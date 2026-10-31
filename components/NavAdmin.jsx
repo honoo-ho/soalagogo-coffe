@@ -25,6 +25,9 @@ export default function NavAdmin() {
       <Link href="/admin/aktivitas" className="font-semibold hover:text-utama">
         Log aktivitas
       </Link>
+      <Link href="/admin/impor" className="font-semibold hover:text-utama">
+        Impor CSV
+      </Link>
       <Link href="/admin/password" className="font-semibold hover:text-utama">
         Ganti password
       </Link>
