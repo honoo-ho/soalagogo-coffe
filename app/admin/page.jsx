@@ -105,7 +105,15 @@ export default async function HalamanAdmin({ searchParams }) {
       <NavAdmin />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-extrabold">Produk</h1>
-        <Tombol href="/admin/produk/baru">Tambah produk</Tombol>
+        <div className="flex flex-wrap gap-2">
+          <a
+            href="/admin/produk/ekspor"
+            className="inline-flex items-center justify-center rounded-lg border border-garis bg-latar px-4 py-2.5 text-sm font-semibold text-teks transition-colors hover:border-utama hover:text-utama"
+          >
+            Ekspor CSV
+          </a>
+          <Tombol href="/admin/produk/baru">Tambah produk</Tombol>
+        </div>
       </div>
       {statusError ? (
         <p role="alert" className="text-sm text-bahaya">
