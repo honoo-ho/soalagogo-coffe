@@ -3,14 +3,65 @@ import TabelProduk from "@/components/TabelProduk";
 import Tombol from "@/components/Tombol";
 import { createSupabaseSessionClient } from "@/lib/supabase/session";
 
+const UKURAN_BATCH = 1000;
+
 export default async function HalamanAdmin({ searchParams }) {
   const { error: statusError } = await searchParams;
-  const supabase = await createSupabaseSessionClient();
-  const { data, error } = await supabase.from("produk").select("*");
-  const daftarProduk = data ?? [];
+  let daftarProduk = [];
+  let jumlahProduk = 0;
+  let kategoriProduk = [];
+  let errorQuery = null;
 
-  if (error) {
-    console.error("Gagal mengambil daftar produk admin:", error.message);
+  try {
+    const supabase = await createSupabaseSessionClient();
+    let hasil = await supabase
+      .from("produk")
+      .select("*", { count: "exact" })
+      .order("id", { ascending: true })
+      .range(0, UKURAN_BATCH - 1);
+
+    if (hasil.error) throw hasil.error;
+    const jumlahTepat = hasil.count;
+    jumlahProduk = jumlahTepat ?? 0;
+
+    let awal = 0;
+    while (true) {
+      const batch = hasil.data ?? [];
+      if (batch.length === 0) break;
+      daftarProduk.push(...batch);
+      awal += batch.length;
+
+      if (jumlahTepat !== null && jumlahTepat !== undefined) {
+        if (awal >= jumlahTepat) break;
+      } else if (batch.length < UKURAN_BATCH) {
+        break;
+      }
+
+      hasil = await supabase
+        .from("produk")
+        .select("*")
+        .order("id", { ascending: true })
+        .range(awal, awal + UKURAN_BATCH - 1);
+
+      if (hasil.error) throw hasil.error;
+    }
+
+    if (jumlahTepat === null || jumlahTepat === undefined) {
+      jumlahProduk = daftarProduk.length;
+    }
+
+    const hitungKategori = new Map();
+    for (const produk of daftarProduk) {
+      const kategori = produk.kategori?.trim() || "Tanpa kategori";
+      hitungKategori.set(kategori, (hitungKategori.get(kategori) ?? 0) + 1);
+    }
+    kategoriProduk = [...hitungKategori.entries()].sort(([a], [b]) => a.localeCompare(b, "id"));
+  } catch (error) {
+    console.error("Gagal mengambil ringkasan produk admin:", error?.message ?? error);
+    errorQuery = error;
+    daftarProduk = [];
+    jumlahProduk = 0;
+    kategoriProduk = [];
   }
 
   return (
@@ -30,14 +81,37 @@ export default async function HalamanAdmin({ searchParams }) {
               : "Produk gagal dihapus. Muat ulang halaman dan coba lagi."}
         </p>
       ) : null}
-      {error ? (
+      {errorQuery ? (
         <p role="alert" className="text-bahaya">
-          Daftar produk gagal dimuat. Silakan muat ulang halaman atau coba lagi nanti.
+          Ringkasan produk gagal dimuat. Periksa koneksi database lalu muat ulang halaman.
         </p>
-      ) : daftarProduk.length === 0 ? (
-        <p className="text-teks-lembut">Belum ada produk.</p>
       ) : (
-        <TabelProduk daftarProduk={daftarProduk} />
+        <>
+          <section aria-labelledby="judul-ringkasan" className="flex flex-col gap-4">
+            <h2 id="judul-ringkasan" className="text-xl font-bold">Ringkasan toko</h2>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <article className="rounded-xl border border-garis bg-permukaan p-4">
+                <p className="text-sm text-teks-lembut">Jumlah produk</p>
+                <p className="mt-1 text-2xl font-extrabold">{jumlahProduk}</p>
+              </article>
+              {kategoriProduk.map(([kategori, jumlah]) => (
+                <article key={kategori} className="rounded-xl border border-garis bg-permukaan p-4">
+                  <p className="text-sm text-teks-lembut">{kategori}</p>
+                  <p className="mt-1 text-2xl font-extrabold">{jumlah}</p>
+                  <p className="text-xs text-teks-lembut">produk</p>
+                </article>
+              ))}
+            </div>
+          </section>
+          <section aria-labelledby="judul-daftar-produk" className="flex flex-col gap-4">
+            <h2 id="judul-daftar-produk" className="text-xl font-bold">Daftar produk</h2>
+            {daftarProduk.length === 0 ? (
+              <p className="text-teks-lembut">Belum ada produk.</p>
+            ) : (
+              <TabelProduk daftarProduk={daftarProduk} />
+            )}
+          </section>
+        </>
       )}
     </div>
   );
