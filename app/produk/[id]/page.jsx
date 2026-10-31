@@ -1,4 +1,6 @@
+import { cache } from "react";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import KartuProduk from "@/components/KartuProduk";
 import GaleriProduk from "@/components/GaleriProduk";
@@ -9,23 +11,79 @@ import TombolFavorit from "@/components/TombolFavorit";
 import { formatRupiah } from "@/lib/format";
 import { ambilFotoProduk } from "@/lib/foto-produk";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { toko } from "@/lib/toko";
 
-export default async function HalamanDetailProduk({ params }) {
-  const { id } = await params;
+const ambilProduk = cache(async (id) => {
   const supabase = createSupabaseServerClient();
-  const { data: produk, error } = await supabase
+  const { data, error } = await supabase
     .from("produk")
     .select("*")
     .eq("id", id)
     .maybeSingle();
 
-  if (error) {
-    throw error;
+  if (error) throw error;
+  return data;
+});
+
+function buatUrlAsal(headerRequest) {
+  const host = (headerRequest.get("x-forwarded-host") || headerRequest.get("host") || "localhost:3000")
+    .split(",")[0]
+    .trim();
+  const protoDiteruskan = headerRequest.get("x-forwarded-proto")?.split(",")[0].trim();
+  const protokol = protoDiteruskan === "http" || host.startsWith("localhost") ? "http" : "https";
+
+  try {
+    return new URL(`${protokol}://${host}`).origin;
+  } catch {
+    return "http://localhost:3000";
   }
+}
+
+export async function generateMetadata({ params }) {
+  const { id } = await params;
+  const produk = await ambilProduk(id);
+  if (!produk) notFound();
+
+  const deskripsi = produk.deskripsi?.trim().replace(/\s+/g, " ").slice(0, 200)
+    || `Lihat ${produk.nama} di ${toko.nama}.`;
+  const headerRequest = await headers();
+  const asal = buatUrlAsal(headerRequest);
+  const foto = ambilFotoProduk(produk.foto_url)[0];
+  let urlFoto;
+
+  if (foto) {
+    try {
+      const url = new URL(foto, asal);
+      if (url.protocol === "http:" || url.protocol === "https:") {
+        urlFoto = url.toString();
+      }
+    } catch {
+      urlFoto = undefined;
+    }
+  }
+
+  return {
+    metadataBase: new URL(asal),
+    title: `${produk.nama} | ${toko.nama}`,
+    description: deskripsi,
+    openGraph: {
+      title: produk.nama,
+      description: deskripsi,
+      type: "website",
+      images: urlFoto ? [{ url: urlFoto, alt: `Foto ${produk.nama}` }] : [],
+    },
+  };
+}
+
+export default async function HalamanDetailProduk({ params }) {
+  const { id } = await params;
+  const produk = await ambilProduk(id);
 
   if (!produk) {
     notFound();
   }
+
+  const supabase = createSupabaseServerClient();
 
   const adaDiskon = Number.isInteger(produk.harga_diskon) && produk.harga_diskon < produk.harga;
   const teksBadge = produk.badge === "baru" ? "Baru" : produk.badge === "terlaris" ? "Terlaris" : "";
