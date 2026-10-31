@@ -66,6 +66,9 @@ create index if not exists ulasan_produk_tampil_dibuat
 alter table public.ulasan enable row level security;
 drop policy if exists "pengunjung_baca_ulasan_tampil" on public.ulasan;
 drop policy if exists "pengunjung_kirim_ulasan" on public.ulasan;
+drop policy if exists "admin_baca_semua_ulasan" on public.ulasan;
+drop policy if exists "admin_ubah_ulasan" on public.ulasan;
+drop policy if exists "admin_hapus_ulasan" on public.ulasan;
 
 create policy "pengunjung_baca_ulasan_tampil" on public.ulasan
   for select to anon, authenticated using (ditampilkan = true);
@@ -73,6 +76,15 @@ create policy "pengunjung_baca_ulasan_tampil" on public.ulasan
 create policy "pengunjung_kirim_ulasan" on public.ulasan
   for insert to anon, authenticated
   with check (ditampilkan = true);
+
+create policy "admin_baca_semua_ulasan" on public.ulasan
+  for select to authenticated using (true);
+
+create policy "admin_ubah_ulasan" on public.ulasan
+  for update to authenticated using (true) with check (true);
+
+create policy "admin_hapus_ulasan" on public.ulasan
+  for delete to authenticated using (true);
 
 -- 3. Daftar kategori yang dikelola admin.
 create table if not exists public.kategori (

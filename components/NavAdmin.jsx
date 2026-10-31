@@ -10,6 +10,9 @@ export default function NavAdmin() {
       <Link href="/admin/kategori" className="font-semibold hover:text-utama">
         Kategori
       </Link>
+      <Link href="/admin/ulasan" className="font-semibold hover:text-utama">
+        Ulasan
+      </Link>
       <Link href="/admin/password" className="font-semibold hover:text-utama">
         Ganti password
       </Link>

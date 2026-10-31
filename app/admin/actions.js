@@ -1,6 +1,7 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseSessionClient } from "@/lib/supabase/session";
 
@@ -650,4 +651,89 @@ export async function hapusKategori(formData) {
   }
   if (!data) redirect("/admin/kategori?status=not_found");
   redirect("/admin/kategori?status=deleted");
+}
+
+async function clientAdminUntukModerasiUlasan() {
+  let supabase;
+  let user;
+
+  try {
+    supabase = await createSupabaseSessionClient();
+    const { data, error } = await supabase.auth.getUser();
+    user = error ? null : data.user;
+  } catch {
+    user = null;
+  }
+
+  if (!user) redirect("/admin/login");
+  return supabase;
+}
+
+function idUlasanValid(formData) {
+  const id = String(formData.get("id") ?? "").trim();
+  return /^\d+$/.test(id) && Number.isSafeInteger(Number(id)) ? id : null;
+}
+
+export async function ubahStatusUlasan(formData) {
+  const supabase = await clientAdminUntukModerasiUlasan();
+  const id = idUlasanValid(formData);
+  if (!id) redirect("/admin/ulasan?status=invalid_id");
+
+  let ulasan;
+  let error;
+  try {
+    ({ data: ulasan, error } = await supabase
+      .from("ulasan")
+      .select("id,produk_id,ditampilkan")
+      .eq("id", id)
+      .maybeSingle());
+  } catch {
+    redirect("/admin/ulasan?status=update_failed");
+  }
+  if (error) redirect("/admin/ulasan?status=update_failed");
+  if (!ulasan) redirect("/admin/ulasan?status=not_found");
+
+  let hasil;
+  try {
+    hasil = await supabase
+      .from("ulasan")
+      .update({ ditampilkan: !ulasan.ditampilkan })
+      .eq("id", id)
+      .eq("ditampilkan", ulasan.ditampilkan)
+      .select("id")
+      .maybeSingle();
+  } catch {
+    redirect("/admin/ulasan?status=update_failed");
+  }
+  if (hasil.error) redirect("/admin/ulasan?status=update_failed");
+  if (!hasil.data) redirect("/admin/ulasan?status=update_conflict");
+
+  revalidatePath(`/produk/${ulasan.produk_id}`);
+  revalidatePath("/admin/ulasan");
+  redirect(`/admin/ulasan?status=${ulasan.ditampilkan ? "hidden" : "shown"}`);
+}
+
+export async function hapusUlasan(formData) {
+  const supabase = await clientAdminUntukModerasiUlasan();
+  const id = idUlasanValid(formData);
+  if (!id) redirect("/admin/ulasan?status=invalid_id");
+
+  let data;
+  let error;
+  try {
+    ({ data, error } = await supabase
+      .from("ulasan")
+      .delete()
+      .eq("id", id)
+      .select("id,produk_id")
+      .maybeSingle());
+  } catch {
+    redirect("/admin/ulasan?status=delete_failed");
+  }
+  if (error) redirect("/admin/ulasan?status=delete_failed");
+  if (!data) redirect("/admin/ulasan?status=not_found");
+
+  revalidatePath(`/produk/${data.produk_id}`);
+  revalidatePath("/admin/ulasan");
+  redirect("/admin/ulasan?status=deleted");
 }
