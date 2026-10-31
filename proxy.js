@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
+import { cekBatasPermintaan } from "@/lib/rate-limit";
 
 function buatCsp(nonce) {
   const isDevelopment = process.env.NODE_ENV === "development";
@@ -45,6 +46,37 @@ export async function proxy(request) {
   };
 
   const pathname = request.nextUrl.pathname;
+  if (request.method === "POST") {
+    let ruangLingkup = null;
+    let batas = 0;
+    let periodeMs = 60_000;
+    let pesan = "Terlalu banyak permintaan. Silakan tunggu sebelum mencoba lagi.";
+
+    if (pathname === "/admin/login") {
+      ruangLingkup = "login-admin";
+      batas = 5;
+      periodeMs = 15 * 60_000;
+      pesan = "Terlalu banyak percobaan login. Silakan tunggu sebelum mencoba lagi.";
+    } else if (/^\/produk\/\d+$/.test(pathname)) {
+      ruangLingkup = "form-publik-produk";
+      batas = 5;
+    } else if (pathname === "/api/whatsapp-click") {
+      ruangLingkup = "klik-whatsapp-publik";
+      batas = 30;
+    }
+
+    if (ruangLingkup) {
+      const limit = cekBatasPermintaan(request.headers, ruangLingkup, batas, periodeMs);
+      if (!limit.allowed) {
+        const response = NextResponse.json({ error: pesan }, { status: 429 });
+        response.headers.set("Cache-Control", "no-store");
+        response.headers.set("Retry-After", String(limit.retryAfter));
+        response.headers.set("Content-Security-Policy", contentSecurityPolicy);
+        return response;
+      }
+    }
+  }
+
   const perluLogin = pathname.startsWith("/admin/") || pathname === "/admin";
   if (!perluLogin || pathname === "/admin/login") return buatResponse();
 
