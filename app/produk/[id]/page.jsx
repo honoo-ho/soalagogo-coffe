@@ -13,6 +13,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSiteOrigin } from "@/lib/site-url";
 import { toko } from "@/lib/toko";
 import { CatatProdukDilihat } from "@/components/ProdukTerakhirDilihat";
+import TombolBandingkan from "@/components/TombolBandingkan";
 
 const ambilProduk = cache(async (id) => {
   const supabase = createSupabaseServerClient();
@@ -124,6 +125,7 @@ export default async function HalamanDetailProduk({ params }) {
           ) : null}
           <p className="max-w-prose leading-relaxed text-teks-lembut">{produk.deskripsi}</p>
           <TombolFavorit produk={produk} />
+          <TombolBandingkan produk={produk} />
           <BagikanProduk namaProduk={produk.nama} />
           {produk.stok === 0 ? null : (
             <>

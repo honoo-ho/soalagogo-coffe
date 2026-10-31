@@ -4,6 +4,7 @@ import Footer from "@/components/Footer";
 import { KeranjangProvider } from "@/components/KeranjangProvider";
 import { FavoritProvider } from "@/components/FavoritProvider";
 import { ProdukTerakhirDilihatProvider } from "@/components/ProdukTerakhirDilihat";
+import { PerbandinganProvider } from "@/components/PerbandinganProvider";
 import { toko } from "@/lib/toko";
 import Script from "next/script";
 
@@ -38,13 +39,15 @@ export default function RootLayout({ children }) {
       <body className="flex min-h-screen flex-col font-sans antialiased">
         <Script id="theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: skripTemaAwal }} />
         <ProdukTerakhirDilihatProvider>
-          <KeranjangProvider>
-            <FavoritProvider>
-              <Header />
-              <main className="mx-auto w-full max-w-5xl flex-1 px-4">{children}</main>
-              <Footer />
-            </FavoritProvider>
-          </KeranjangProvider>
+          <PerbandinganProvider>
+            <KeranjangProvider>
+              <FavoritProvider>
+                <Header />
+                <main className="mx-auto w-full max-w-5xl flex-1 px-4">{children}</main>
+                <Footer />
+              </FavoritProvider>
+            </KeranjangProvider>
+          </PerbandinganProvider>
         </ProdukTerakhirDilihatProvider>
       </body>
     </html>
