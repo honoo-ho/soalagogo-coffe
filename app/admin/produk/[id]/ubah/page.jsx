@@ -29,7 +29,7 @@ export default async function HalamanUbahProduk({ params, searchParams }) {
       {statusError ? (
         <p role="alert" className="text-sm text-bahaya">
           {statusError === "invalid_data"
-            ? "Isi nama produk dan masukkan harga berupa bilangan bulat minimal 0."
+            ? "Isi nama produk dan masukkan harga bilangan bulat minimal 0. Harga diskon, jika diisi, harus berupa bilangan bulat di bawah harga normal."
             : statusError === "not_found"
               ? "Produk tidak ditemukan atau sudah dihapus."
               : "Perubahan produk gagal disimpan. Periksa data dan coba lagi."}

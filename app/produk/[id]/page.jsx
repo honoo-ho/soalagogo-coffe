@@ -24,6 +24,9 @@ export default async function HalamanDetailProduk({ params }) {
     notFound();
   }
 
+  const adaDiskon = Number.isInteger(produk.harga_diskon) && produk.harga_diskon < produk.harga;
+  const teksBadge = produk.badge === "baru" ? "Baru" : produk.badge === "terlaris" ? "Terlaris" : "";
+
   let produkTerkait = [];
   if (produk.kategori) {
     const { data, error: errorTerkait } = await supabase
@@ -51,9 +54,19 @@ export default async function HalamanDetailProduk({ params }) {
           </Link>
           <p className="text-sm text-teks-lembut">{produk.kategori}</p>
           <h1 className="text-3xl font-extrabold leading-tight tracking-tight">{produk.nama}</h1>
-          <p className="self-start rounded-md bg-harga-latar px-3 py-1 text-xl font-bold text-harga">
-            {formatRupiah(produk.harga)}
-          </p>
+          {teksBadge ? (
+            <p className="self-start rounded-md bg-utama px-3 py-1 text-sm font-bold text-white">
+              {teksBadge}
+            </p>
+          ) : null}
+          <div className="self-start">
+            {adaDiskon ? (
+              <p className="text-sm text-teks-lembut line-through">{formatRupiah(produk.harga)}</p>
+            ) : null}
+            <p className="rounded-md bg-harga-latar px-3 py-1 text-xl font-bold text-harga">
+              {formatRupiah(adaDiskon ? produk.harga_diskon : produk.harga)}
+            </p>
+          </div>
           {produk.stok === 0 ? (
             <p className="self-start rounded-md bg-harga-latar px-3 py-1 text-sm font-bold text-bahaya">
               Habis

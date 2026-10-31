@@ -12,7 +12,7 @@ export default async function HalamanTambahProduk({ searchParams }) {
       {error ? (
         <p role="alert" className="text-sm text-bahaya">
           {error === "invalid_data"
-            ? "Isi nama produk dan masukkan harga berupa bilangan bulat minimal 0."
+            ? "Isi nama produk dan masukkan harga bilangan bulat minimal 0. Harga diskon, jika diisi, harus berupa bilangan bulat di bawah harga normal."
             : "Produk gagal disimpan. Periksa data dan coba lagi."}
         </p>
       ) : null}

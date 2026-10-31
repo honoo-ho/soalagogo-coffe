@@ -48,7 +48,28 @@ export default function FormProduk({ produk = {}, labelTombol, action }) {
         defaultValue={produk.harga}
         required
       />
+      <Input
+        label="Harga diskon (Rp, opsional)"
+        name="harga_diskon"
+        type="number"
+        min="0"
+        step="1"
+        placeholder="Harus lebih rendah dari harga normal"
+        defaultValue={produk.harga_diskon ?? ""}
+      />
       <Input label="Kategori" name="kategori" defaultValue={produk.kategori} />
+      <label className="flex flex-col gap-1.5 text-sm font-semibold">
+        Badge produk
+        <select
+          name="badge"
+          defaultValue={produk.badge ?? ""}
+          className="w-full rounded-lg border border-garis bg-latar px-3 py-2.5 text-base text-teks focus:border-utama focus:outline-none"
+        >
+          <option value="">Tanpa badge</option>
+          <option value="baru">Baru</option>
+          <option value="terlaris">Terlaris</option>
+        </select>
+      </label>
       <Input
         label="Stok (opsional)"
         name="stok"

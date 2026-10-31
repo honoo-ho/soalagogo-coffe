@@ -86,6 +86,10 @@ export async function simpanProduk(formData) {
   const nama = String(formData.get("nama") ?? "").trim();
   const hargaText = String(formData.get("harga") ?? "").trim();
   const harga = Number(hargaText);
+  const hargaDiskonText = String(formData.get("harga_diskon") ?? "").trim();
+  const hargaDiskon = hargaDiskonText === "" ? null : Number(hargaDiskonText);
+  const badgeInput = String(formData.get("badge") ?? "").trim();
+  const badge = badgeInput || null;
   const stokText = String(formData.get("stok") ?? "").trim();
   const stok = stokText === "" ? null : Number(stokText);
 
@@ -94,6 +98,9 @@ export async function simpanProduk(formData) {
     !hargaText ||
     !Number.isInteger(harga) ||
     harga < 0 ||
+    (hargaDiskon !== null &&
+      (!Number.isInteger(hargaDiskon) || hargaDiskon < 0 || hargaDiskon >= harga)) ||
+    (badge !== null && !["baru", "terlaris"].includes(badge)) ||
     (stok !== null && (!Number.isInteger(stok) || stok < 0))
   ) {
     redirect("/admin/produk/baru?error=invalid_data");
@@ -102,6 +109,8 @@ export async function simpanProduk(formData) {
   const produk = {
     nama,
     harga,
+    harga_diskon: hargaDiskon,
+    badge,
     stok,
     kategori: String(formData.get("kategori") ?? "").trim() || null,
     foto_url: String(formData.get("foto_url") ?? "").trim() || null,
@@ -149,6 +158,10 @@ export async function ubahProduk(formData) {
   const nama = String(formData.get("nama") ?? "").trim();
   const hargaText = String(formData.get("harga") ?? "").trim();
   const harga = Number(hargaText);
+  const hargaDiskonText = String(formData.get("harga_diskon") ?? "").trim();
+  const hargaDiskon = hargaDiskonText === "" ? null : Number(hargaDiskonText);
+  const badgeInput = String(formData.get("badge") ?? "").trim();
+  const badge = badgeInput || null;
   const stokText = String(formData.get("stok") ?? "").trim();
   const stok = stokText === "" ? null : Number(stokText);
 
@@ -157,6 +170,9 @@ export async function ubahProduk(formData) {
     !hargaText ||
     !Number.isInteger(harga) ||
     harga < 0 ||
+    (hargaDiskon !== null &&
+      (!Number.isInteger(hargaDiskon) || hargaDiskon < 0 || hargaDiskon >= harga)) ||
+    (badge !== null && !["baru", "terlaris"].includes(badge)) ||
     (stok !== null && (!Number.isInteger(stok) || stok < 0))
   ) {
     redirect(`${pathUbah}?error=invalid_data`);
@@ -165,6 +181,8 @@ export async function ubahProduk(formData) {
   const perubahan = {
     nama,
     harga,
+    harga_diskon: hargaDiskon,
+    badge,
     stok,
     kategori: String(formData.get("kategori") ?? "").trim() || null,
     foto_url: String(formData.get("foto_url") ?? "").trim() || null,

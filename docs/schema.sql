@@ -7,6 +7,8 @@ create table if not exists public.produk (
   id bigint generated always as identity primary key,
   nama text not null,
   harga integer not null check (harga >= 0),
+  harga_diskon integer check (harga_diskon >= 0),
+  badge text check (badge in ('baru', 'terlaris')),
   deskripsi text,
   foto_url text,
   kategori text,
@@ -17,6 +19,10 @@ create table if not exists public.produk (
 -- Tambahkan kolom stok untuk tabel produk yang sudah dibuat sebelumnya.
 alter table public.produk
   add column if not exists stok integer check (stok >= 0);
+alter table public.produk
+  add column if not exists harga_diskon integer check (harga_diskon >= 0);
+alter table public.produk
+  add column if not exists badge text check (badge in ('baru', 'terlaris'));
 
 -- 2. Row Level Security
 -- Tidak ada izin untuk publik: akses langsung ke tabel dari luar aplikasi ditolak.
