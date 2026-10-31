@@ -2,6 +2,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { KeranjangProvider } from "@/components/KeranjangProvider";
+import { FavoritProvider } from "@/components/FavoritProvider";
 import { toko } from "@/lib/toko";
 
 export const metadata = {
@@ -27,9 +28,11 @@ export default function RootLayout({ children }) {
       </head>
       <body className="flex min-h-screen flex-col font-sans antialiased">
         <KeranjangProvider>
-          <Header />
-          <main className="mx-auto w-full max-w-5xl flex-1 px-4">{children}</main>
-          <Footer />
+          <FavoritProvider>
+            <Header />
+            <main className="mx-auto w-full max-w-5xl flex-1 px-4">{children}</main>
+            <Footer />
+          </FavoritProvider>
         </KeranjangProvider>
       </body>
     </html>

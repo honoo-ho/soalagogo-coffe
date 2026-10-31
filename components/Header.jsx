@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { toko } from "@/lib/toko";
 import TautanKeranjang from "@/components/TautanKeranjang";
+import TautanFavorit from "@/components/TautanFavorit";
 
 export default function Header() {
   return (
@@ -13,6 +14,7 @@ export default function Header() {
           <Link href="/tentang" className="text-sm font-semibold text-teks hover:text-utama">
             Tentang
           </Link>
+          <TautanFavorit />
           <TautanKeranjang />
         </nav>
       </div>

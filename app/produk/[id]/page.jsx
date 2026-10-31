@@ -5,6 +5,7 @@ import GaleriProduk from "@/components/GaleriProduk";
 import TombolWhatsApp from "@/components/TombolWhatsApp";
 import TambahKeKeranjang from "@/components/TambahKeKeranjang";
 import BagikanProduk from "@/components/BagikanProduk";
+import TombolFavorit from "@/components/TombolFavorit";
 import { formatRupiah } from "@/lib/format";
 import { ambilFotoProduk } from "@/lib/foto-produk";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -75,6 +76,7 @@ export default async function HalamanDetailProduk({ params }) {
             </p>
           ) : null}
           <p className="max-w-prose leading-relaxed text-teks-lembut">{produk.deskripsi}</p>
+          <TombolFavorit produk={produk} />
           <BagikanProduk namaProduk={produk.nama} />
           {produk.stok === 0 ? null : (
             <>
