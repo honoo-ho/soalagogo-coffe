@@ -6,7 +6,7 @@ import { createSupabaseSessionClient } from "@/lib/supabase/session";
 const UKURAN_BATCH = 1000;
 
 export default async function HalamanAdmin({ searchParams }) {
-  const { error: statusError } = await searchParams;
+  const { error: statusError, status } = await searchParams;
   let daftarProduk = [];
   let jumlahProduk = 0;
   let kategoriProduk = [];
@@ -78,8 +78,15 @@ export default async function HalamanAdmin({ searchParams }) {
             ? "Produk tidak ditemukan atau sudah dihapus."
             : statusError === "invalid_id"
               ? "ID produk tidak valid."
-              : "Produk gagal dihapus. Muat ulang halaman dan coba lagi."}
+              : statusError === "status_conflict"
+                ? "Status produk baru saja berubah. Muat ulang halaman sebelum mencoba lagi."
+                : statusError === "status_failed"
+                  ? "Status produk gagal diubah. Muat ulang halaman dan coba lagi."
+                  : "Produk gagal dihapus. Muat ulang halaman dan coba lagi."}
         </p>
+      ) : null}
+      {status === "status_updated" ? (
+        <p role="status" className="text-sm text-utama">Status produk berhasil diperbarui.</p>
       ) : null}
       {errorQuery ? (
         <p role="alert" className="text-bahaya">

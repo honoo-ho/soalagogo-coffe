@@ -19,6 +19,7 @@ const ambilProduk = cache(async (id) => {
     .from("produk")
     .select("*")
     .eq("id", id)
+    .eq("aktif", true)
     .maybeSingle();
 
   if (error) throw error;
@@ -78,6 +79,7 @@ export default async function HalamanDetailProduk({ params }) {
     const { data, error: errorTerkait } = await supabase
       .from("produk")
       .select("*")
+      .eq("aktif", true)
       .eq("kategori", produk.kategori)
       .neq("id", id)
       .order("created_at", { ascending: false })

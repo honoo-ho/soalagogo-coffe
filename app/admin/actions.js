@@ -393,6 +393,65 @@ export async function hapusProduk(formData) {
   redirect("/admin");
 }
 
+export async function ubahStatusProduk(formData) {
+  let supabase;
+  let user;
+
+  try {
+    supabase = await createSupabaseSessionClient();
+    const { data, error } = await supabase.auth.getUser();
+    user = error ? null : data.user;
+  } catch {
+    user = null;
+  }
+
+  if (!user) redirect("/admin/login");
+
+  const id = String(formData.get("id") ?? "").trim();
+  if (!/^\d+$/.test(id)) redirect("/admin?error=invalid_id");
+
+  let produk;
+  let error;
+  try {
+    ({ data: produk, error } = await supabase
+      .from("produk")
+      .select("aktif")
+      .eq("id", id)
+      .maybeSingle());
+  } catch (readError) {
+    console.error("Gagal membaca status produk:", readError);
+    redirect("/admin?error=status_failed");
+  }
+
+  if (error) {
+    console.error("Gagal membaca status produk:", error.message);
+    redirect("/admin?error=status_failed");
+  }
+  if (!produk) redirect("/admin?error=not_found");
+
+  let hasil;
+  try {
+    hasil = await supabase
+      .from("produk")
+      .update({ aktif: !produk.aktif })
+      .eq("id", id)
+      .eq("aktif", produk.aktif)
+      .select("id")
+      .maybeSingle();
+  } catch (updateError) {
+    console.error("Gagal mengubah status produk:", updateError);
+    redirect("/admin?error=status_failed");
+  }
+
+  if (hasil.error) {
+    console.error("Gagal mengubah status produk:", hasil.error.message);
+    redirect("/admin?error=status_failed");
+  }
+  if (!hasil.data) redirect("/admin?error=status_conflict");
+
+  redirect("/admin?status=status_updated");
+}
+
 export async function buatDeskripsiProduk(nama, kategori) {
   let supabase;
   let user;

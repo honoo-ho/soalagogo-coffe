@@ -8,7 +8,8 @@ export default async function sitemap() {
   const produk = [];
   const { count, error: errorJumlah } = await supabase
     .from("produk")
-    .select("id", { count: "exact", head: true });
+    .select("id", { count: "exact", head: true })
+    .eq("aktif", true);
 
   if (errorJumlah) throw errorJumlah;
 
@@ -18,6 +19,7 @@ export default async function sitemap() {
     const { data, error } = await supabase
       .from("produk")
       .select("id")
+      .eq("aktif", true)
       .order("id", { ascending: true })
       .range(awal, awal + UKURAN_BATCH - 1);
 

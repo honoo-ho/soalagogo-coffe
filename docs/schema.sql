@@ -13,6 +13,7 @@ create table if not exists public.produk (
   foto_url text,
   kategori text,
   stok integer check (stok >= 0),
+  aktif boolean not null default true,
   created_at timestamptz not null default now()
 );
 
@@ -23,6 +24,8 @@ alter table public.produk
   add column if not exists harga_diskon integer check (harga_diskon >= 0);
 alter table public.produk
   add column if not exists badge text check (badge in ('baru', 'terlaris'));
+alter table public.produk
+  add column if not exists aktif boolean not null default true;
 
 -- 2. Row Level Security
 -- Tidak ada izin untuk publik: akses langsung ke tabel dari luar aplikasi ditolak.

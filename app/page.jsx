@@ -27,6 +27,7 @@ export default async function HalamanKatalog({ searchParams }) {
     const { data: kategoriData, error: errorKategori } = await supabase
       .from("produk")
       .select("kategori")
+      .eq("aktif", true)
       .not("kategori", "is", null);
 
     if (errorKategori) {
@@ -39,6 +40,7 @@ export default async function HalamanKatalog({ searchParams }) {
 
     function buatQueryProduk() {
       let queryProduk = supabase.from("produk").select("*", { count: "exact" });
+      queryProduk = queryProduk.eq("aktif", true);
 
       if (kategoriAktif) {
         queryProduk = queryProduk.eq("kategori", kategoriAktif);
