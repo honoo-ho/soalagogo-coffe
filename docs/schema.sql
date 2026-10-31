@@ -54,6 +54,35 @@ alter table public.produk alter column urutan
 grant usage, select on sequence public.produk_urutan_seq to authenticated;
 create index if not exists produk_urutan_id on public.produk (urutan, id);
 
+-- Varian ukuran dan harganya untuk setiap produk.
+create table if not exists public.varian_produk (
+  id bigint generated always as identity primary key,
+  produk_id bigint not null references public.produk (id) on delete cascade,
+  nama text not null check (nama = btrim(nama) and length(nama) between 1 and 80),
+  harga integer not null check (harga > 0),
+  created_at timestamptz not null default now(),
+  unique (produk_id, nama)
+);
+
+create index if not exists varian_produk_produk_id on public.varian_produk (produk_id, id);
+alter table public.varian_produk enable row level security;
+drop policy if exists "pengunjung_baca_varian_produk" on public.varian_produk;
+drop policy if exists "admin_baca_varian_produk" on public.varian_produk;
+drop policy if exists "admin_tambah_varian_produk" on public.varian_produk;
+drop policy if exists "admin_ubah_varian_produk" on public.varian_produk;
+drop policy if exists "admin_hapus_varian_produk" on public.varian_produk;
+
+create policy "pengunjung_baca_varian_produk" on public.varian_produk
+  for select to anon, authenticated using (true);
+create policy "admin_baca_varian_produk" on public.varian_produk
+  for select to authenticated using (true);
+create policy "admin_tambah_varian_produk" on public.varian_produk
+  for insert to authenticated with check (true);
+create policy "admin_ubah_varian_produk" on public.varian_produk
+  for update to authenticated using (true) with check (true);
+create policy "admin_hapus_varian_produk" on public.varian_produk
+  for delete to authenticated using (true);
+
 -- Bersihkan trigger dari versi migrasi sebelumnya jika schema dijalankan ulang.
 drop trigger if exists produk_tetapkan_urutan on public.produk;
 drop function if exists public.tetapkan_urutan_produk();

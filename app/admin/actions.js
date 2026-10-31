@@ -263,7 +263,39 @@ function ambilNilaiFormProduk(formData) {
     stok: String(formData.get("stok") ?? "").trim(),
     foto_url: String(formData.get("foto_url") ?? ""),
     deskripsi: String(formData.get("deskripsi") ?? ""),
+    varian: String(formData.get("varian") ?? ""),
   };
+}
+
+function validasiVarianProduk(teks) {
+  const baris = teks.split(/\r?\n/).map((nilai) => nilai.trim()).filter(Boolean);
+  if (baris.length > 20) return { data: null, error: "Maksimal 20 varian per produk." };
+  const data = [];
+  const namaUnik = new Set();
+  for (let index = 0; index < baris.length; index += 1) {
+    const pemisah = baris[index].lastIndexOf("|");
+    const nama = pemisah < 0 ? "" : baris[index].slice(0, pemisah).trim();
+    const hargaTeks = pemisah < 0 ? "" : baris[index].slice(pemisah + 1).trim();
+    const harga = Number(hargaTeks);
+    if (!nama || nama.length > 80 || !/^\d+$/.test(hargaTeks) || !Number.isSafeInteger(harga) || harga <= 0 || harga > 2147483647) {
+      return { data: null, error: `Varian pada baris ${index + 1} harus berformat nama|harga, dengan nama maksimal 80 karakter dan harga bilangan bulat positif.` };
+    }
+    const kunci = nama.toLocaleLowerCase("id-ID");
+    if (namaUnik.has(kunci)) return { data: null, error: `Nama varian “${nama}” tercantum lebih dari sekali.` };
+    namaUnik.add(kunci);
+    data.push({ nama, harga });
+  }
+  return { data, error: null };
+}
+
+async function gantiVarianProduk(supabase, produkId, varian) {
+  const { error: errorHapus } = await supabase.from("varian_produk").delete().eq("produk_id", produkId);
+  if (errorHapus) throw errorHapus;
+  if (varian.length === 0) return;
+  const { error } = await supabase.from("varian_produk").insert(
+    varian.map((item) => ({ ...item, produk_id: produkId }))
+  );
+  if (error) throw error;
 }
 
 function validasiNilaiFormProduk(nilai) {
@@ -382,6 +414,8 @@ export async function simpanProduk(_previousState, formData) {
 
   const nilai = ambilNilaiFormProduk(formData);
   const { errors, harga, hargaDiskon, stok } = validasiNilaiFormProduk(nilai);
+  const hasilVarian = validasiVarianProduk(nilai.varian);
+  if (hasilVarian.error) errors.varian = hasilVarian.error;
   if (nilai.kategori && !(await kategoriTersedia(supabase, nilai.kategori))) {
     errors.kategori = "Kategori tidak tersedia. Pilih kategori dari daftar.";
   }
@@ -406,8 +440,9 @@ export async function simpanProduk(_previousState, formData) {
   };
 
   let error;
+  let dataProduk;
   try {
-    ({ error } = await supabase.from("produk").insert(produk));
+    ({ data: dataProduk, error } = await supabase.from("produk").insert(produk).select("id").single());
   } catch (insertError) {
     console.error("Gagal menyimpan produk:", insertError);
     await hapusUploadFoto(supabase, paths);
@@ -418,6 +453,13 @@ export async function simpanProduk(_previousState, formData) {
     console.error("Gagal menyimpan produk:", error.message);
     await hapusUploadFoto(supabase, paths);
     return { errors: { form: "Produk gagal disimpan. Periksa data dan coba lagi." }, values: nilai };
+  }
+
+  try {
+    await gantiVarianProduk(supabase, dataProduk.id, hasilVarian.data);
+  } catch (errorVarian) {
+    console.error("Gagal menyimpan varian produk:", errorVarian?.message ?? errorVarian);
+    return { errors: { form: "Produk tersimpan, tetapi variannya gagal disimpan. Buka produk untuk mengatur ulang variannya." }, values: nilai };
   }
 
   redirect("/admin");
@@ -446,6 +488,8 @@ export async function ubahProduk(_previousState, formData) {
 
   const nilai = ambilNilaiFormProduk(formData);
   const { errors, harga, hargaDiskon, stok } = validasiNilaiFormProduk(nilai);
+  const hasilVarian = validasiVarianProduk(nilai.varian);
+  if (hasilVarian.error) errors.varian = hasilVarian.error;
   if (nilai.kategori && !(await kategoriTersedia(supabase, nilai.kategori))) {
     errors.kategori = "Kategori tidak tersedia. Pilih kategori dari daftar.";
   }
@@ -493,6 +537,13 @@ export async function ubahProduk(_previousState, formData) {
   if (!data) {
     await hapusUploadFoto(supabase, paths);
     return { errors: { form: "Produk tidak ditemukan atau sudah dihapus." }, values: nilai };
+  }
+
+  try {
+    await gantiVarianProduk(supabase, id, hasilVarian.data);
+  } catch (errorVarian) {
+    console.error("Gagal menyimpan varian produk:", errorVarian?.message ?? errorVarian);
+    return { errors: { form: "Data produk tersimpan, tetapi variannya gagal disimpan. Coba simpan perubahan lagi." }, values: nilai };
   }
 
   redirect("/admin");

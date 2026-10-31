@@ -23,6 +23,14 @@ export default async function HalamanUbahProduk({ params, searchParams }) {
     notFound();
   }
 
+  const { data: varianProduk, error: errorVarian } = await supabase
+    .from("varian_produk")
+    .select("id,nama,harga")
+    .eq("produk_id", id)
+    .order("id", { ascending: true });
+  if (errorVarian) throw errorVarian;
+  produk.varian_produk = varianProduk ?? [];
+
   const kategori = await ambilDaftarKategori(supabase);
 
   return (

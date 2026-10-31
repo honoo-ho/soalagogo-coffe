@@ -5,15 +5,17 @@ import { formatRupiah } from "@/lib/format";
 import { catatKlikWhatsApp } from "@/lib/catat-klik-whatsapp";
 import { usePengaturanToko } from "@/components/PengaturanTokoProvider";
 
-export default function TombolWhatsApp({ produk }) {
+export default function TombolWhatsApp({ produk, varian = null }) {
   const [jumlah, setJumlah] = useState(1);
   const pengaturanToko = usePengaturanToko();
-  const hargaAktif =
+  const hargaAktif = varian?.harga ?? (
     Number.isInteger(produk.harga_diskon) && produk.harga_diskon < produk.harga
       ? produk.harga_diskon
-      : produk.harga;
+      : produk.harga
+  );
   const totalHarga = hargaAktif * jumlah;
-  const pesan = `Halo, saya ingin memesan ${produk.nama}. Jumlah: ${jumlah}. Harga satuan: ${formatRupiah(hargaAktif)}. Total: ${formatRupiah(totalHarga)}.`;
+  const teksVarian = varian ? ` Varian: ${varian.nama}.` : "";
+  const pesan = `Halo, saya ingin memesan ${produk.nama}.${teksVarian} Jumlah: ${jumlah}. Harga satuan: ${formatRupiah(hargaAktif)}. Total: ${formatRupiah(totalHarga)}.`;
   const tautanWhatsApp = `https://wa.me/${pengaturanToko.nomorWhatsApp}?text=${encodeURIComponent(pesan)}`;
 
   return (

@@ -28,6 +28,7 @@ export default function FormProduk({ produk = {}, kategori = [], labelTombol, ac
     stok: produk.stok == null ? "" : String(produk.stok),
     foto_url: produk.foto_url ?? "",
     deskripsi: produk.deskripsi ?? "",
+    varian: (produk.varian_produk ?? []).map((varian) => `${varian.nama}|${varian.harga}`).join("\n"),
   });
   const [sedangMembuat, setSedangMembuat] = useState(false);
   const [pesanAI, setPesanAI] = useState("");
@@ -107,6 +108,20 @@ export default function FormProduk({ produk = {}, kategori = [], labelTombol, ac
           aria-describedby={errors.harga_diskon ? "error-harga-diskon" : undefined}
         />
         <PesanError id="error-harga-diskon">{errors.harga_diskon}</PesanError>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Input
+          label="Varian ukuran dan harga (opsional)"
+          name="varian"
+          textarea
+          placeholder={"250 g|45000\n500 g|85000"}
+          value={draft.varian}
+          onChange={(event) => ubahNilai("varian", event.target.value)}
+          aria-invalid={Boolean(errors.varian)}
+          aria-describedby={errors.varian ? "error-varian" : undefined}
+        />
+        <p className="text-xs text-teks-lembut">Satu varian per baris dengan format nama|harga dalam rupiah. Kosongkan jika produk tidak punya varian.</p>
+        <PesanError id="error-varian">{errors.varian}</PesanError>
       </div>
       <div className="flex flex-col gap-1.5">
         <label className="flex flex-col gap-1.5 text-sm font-semibold">

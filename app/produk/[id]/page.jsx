@@ -3,11 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import KartuProduk from "@/components/KartuProduk";
 import GaleriProduk from "@/components/GaleriProduk";
-import TombolWhatsApp from "@/components/TombolWhatsApp";
-import TambahKeKeranjang from "@/components/TambahKeKeranjang";
+import PilihanVarianProduk from "@/components/PilihanVarianProduk";
 import BagikanProduk from "@/components/BagikanProduk";
 import TombolFavorit from "@/components/TombolFavorit";
-import { formatRupiah } from "@/lib/format";
 import { ambilFotoProduk } from "@/lib/foto-produk";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSiteOrigin } from "@/lib/site-url";
@@ -89,8 +87,14 @@ export default async function HalamanDetailProduk({ params }) {
     ? ulasan.reduce((total, item) => total + item.rating, 0) / ulasan.length
     : null;
 
-  const adaDiskon = Number.isInteger(produk.harga_diskon) && produk.harga_diskon < produk.harga;
   const teksBadge = produk.badge === "baru" ? "Baru" : produk.badge === "terlaris" ? "Terlaris" : "";
+  const { data: varianProduk, error: errorVarian } = await supabase
+    .from("varian_produk")
+    .select("id,nama,harga")
+    .eq("produk_id", id)
+    .order("id", { ascending: true });
+  if (errorVarian) console.error("Gagal mengambil varian produk:", errorVarian.message);
+  const varian = errorVarian ? [] : varianProduk ?? [];
 
   let produkTerkait = [];
   if (produk.kategori) {
@@ -126,14 +130,6 @@ export default async function HalamanDetailProduk({ params }) {
               {teksBadge}
             </p>
           ) : null}
-          <div className="self-start">
-            {adaDiskon ? (
-              <p className="text-sm text-teks-lembut line-through">{formatRupiah(produk.harga)}</p>
-            ) : null}
-            <p className="rounded-md bg-harga-latar px-3 py-1 text-xl font-bold text-harga">
-              {formatRupiah(adaDiskon ? produk.harga_diskon : produk.harga)}
-            </p>
-          </div>
           {produk.stok === 0 ? (
             <p className="self-start rounded-md bg-harga-latar px-3 py-1 text-sm font-bold text-bahaya">
               Habis
@@ -144,10 +140,7 @@ export default async function HalamanDetailProduk({ params }) {
           <TombolBandingkan produk={produk} />
           <BagikanProduk namaProduk={produk.nama} />
           {produk.stok === 0 ? null : (
-            <>
-              <TombolWhatsApp produk={produk} />
-              <TambahKeKeranjang produk={produk} />
-            </>
+            <PilihanVarianProduk produk={produk} varian={varian} />
           )}
         </div>
       </article>
