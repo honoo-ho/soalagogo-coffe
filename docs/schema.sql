@@ -49,6 +49,61 @@ create policy "admin_ubah_produk" on public.produk
 create policy "admin_hapus_produk" on public.produk
   for delete to authenticated using (true);
 
+-- Log perubahan produk. Tidak memakai foreign key agar catatan tetap ada setelah produk dihapus.
+create table if not exists public.log_aktivitas_admin (
+  id bigint generated always as identity primary key,
+  admin_id uuid,
+  admin_email text,
+  aksi text not null check (aksi in ('tambah_produk', 'ubah_produk', 'hapus_produk')),
+  produk_id bigint not null,
+  nama_produk text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists log_aktivitas_admin_dibuat
+  on public.log_aktivitas_admin (created_at desc);
+
+alter table public.log_aktivitas_admin enable row level security;
+drop policy if exists "admin_baca_log_aktivitas" on public.log_aktivitas_admin;
+
+create policy "admin_baca_log_aktivitas" on public.log_aktivitas_admin
+  for select to authenticated using (true);
+
+create or replace function public.catat_aktivitas_produk()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  -- Abaikan perubahan administratif SQL yang tidak berasal dari sesi admin aplikasi.
+  if auth.uid() is null then
+    if tg_op = 'DELETE' then return old; end if;
+    return new;
+  end if;
+
+  if tg_op = 'INSERT' then
+    insert into public.log_aktivitas_admin (admin_id, admin_email, aksi, produk_id, nama_produk)
+    values (auth.uid(), auth.jwt() ->> 'email', 'tambah_produk', new.id, new.nama);
+    return new;
+  elsif tg_op = 'UPDATE' then
+    insert into public.log_aktivitas_admin (admin_id, admin_email, aksi, produk_id, nama_produk)
+    values (auth.uid(), auth.jwt() ->> 'email', 'ubah_produk', new.id, new.nama);
+    return new;
+  elsif tg_op = 'DELETE' then
+    insert into public.log_aktivitas_admin (admin_id, admin_email, aksi, produk_id, nama_produk)
+    values (auth.uid(), auth.jwt() ->> 'email', 'hapus_produk', old.id, old.nama);
+    return old;
+  end if;
+  return null;
+end;
+$$;
+
+drop trigger if exists produk_log_aktivitas_admin on public.produk;
+create trigger produk_log_aktivitas_admin
+  after insert or update or delete on public.produk
+  for each row execute function public.catat_aktivitas_produk();
+
 -- Catatan klik pesan WhatsApp. Baris hanya menyimpan produk dan waktu, tanpa data pengunjung.
 create table if not exists public.klik_whatsapp (
   id bigint generated always as identity primary key,
