@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import KartuProduk from "@/components/KartuProduk";
 import GaleriProduk from "@/components/GaleriProduk";
 import TombolWhatsApp from "@/components/TombolWhatsApp";
+import TambahKeKeranjang from "@/components/TambahKeKeranjang";
 import { formatRupiah } from "@/lib/format";
 import { ambilFotoProduk } from "@/lib/foto-produk";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -73,7 +74,12 @@ export default async function HalamanDetailProduk({ params }) {
             </p>
           ) : null}
           <p className="max-w-prose leading-relaxed text-teks-lembut">{produk.deskripsi}</p>
-          {produk.stok === 0 ? null : <TombolWhatsApp produk={produk} />}
+          {produk.stok === 0 ? null : (
+            <>
+              <TombolWhatsApp produk={produk} />
+              <TambahKeKeranjang produk={produk} />
+            </>
+          )}
         </div>
       </article>
       {produkTerkait.length > 0 ? (
