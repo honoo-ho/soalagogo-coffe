@@ -1,4 +1,5 @@
 import { createSupabaseSessionClient } from "@/lib/supabase/session";
+import { logServerError } from "@/lib/log-error";
 
 const UKURAN_BATCH = 1000;
 const KOLOM = [
@@ -74,7 +75,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error("Gagal mengekspor produk:", error?.message ?? error);
+    logServerError("Gagal mengekspor produk:", error);
     return new Response("Daftar produk gagal diekspor. Coba lagi nanti.", {
       status: 500,
       headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },

@@ -1,4 +1,5 @@
 import NavAdmin from "@/components/NavAdmin";
+import { logServerError } from "@/lib/log-error";
 import { createSupabaseSessionClient } from "@/lib/supabase/session";
 import { redirect } from "next/navigation";
 
@@ -26,7 +27,7 @@ export default async function HalamanAktivitasAdmin() {
     if (error) throw error;
     daftarLog = data ?? [];
   } catch (error) {
-    console.error("Gagal mengambil log aktivitas admin:", error?.message ?? error);
+    logServerError("Gagal mengambil log aktivitas admin:", error);
     gagalMemuat = true;
   }
 

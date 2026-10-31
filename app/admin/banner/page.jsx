@@ -1,4 +1,5 @@
 import NavAdmin from "@/components/NavAdmin";
+import { logServerError } from "@/lib/log-error";
 import Input from "@/components/Input";
 import Tombol from "@/components/Tombol";
 import { simpanBannerPromo, ubahStatusBannerPromo } from "@/app/admin/actions";
@@ -36,7 +37,7 @@ export default async function HalamanAdminBanner({ searchParams }) {
     if (error) throw error;
     daftarBanner = data ?? [];
   } catch (error) {
-    console.error("Gagal mengambil banner admin:", error?.message ?? error);
+    logServerError("Gagal mengambil banner admin:", error);
     errorQuery = true;
   }
 

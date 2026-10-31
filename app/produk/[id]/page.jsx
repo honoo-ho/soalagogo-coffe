@@ -8,6 +8,7 @@ import BagikanProduk from "@/components/BagikanProduk";
 import TombolFavorit from "@/components/TombolFavorit";
 import { ambilFotoProduk } from "@/lib/foto-produk";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { logServerError } from "@/lib/log-error";
 import { getSiteOrigin } from "@/lib/site-url";
 import { ambilPengaturanToko } from "@/lib/pengaturan-toko";
 import { CatatProdukDilihat } from "@/components/ProdukTerakhirDilihat";
@@ -83,7 +84,7 @@ export default async function HalamanDetailProduk({ params }) {
     .eq("ditampilkan", true)
     .order("created_at", { ascending: false });
 
-  if (errorUlasan) console.error("Gagal mengambil ulasan produk:", errorUlasan.message);
+  if (errorUlasan) logServerError("Gagal mengambil ulasan produk:", errorUlasan);
   const ulasan = errorUlasan ? [] : ulasanData ?? [];
   const rataRataRating = ulasan.length
     ? ulasan.reduce((total, item) => total + item.rating, 0) / ulasan.length
@@ -95,7 +96,7 @@ export default async function HalamanDetailProduk({ params }) {
     .select("id,nama,harga")
     .eq("produk_id", id)
     .order("id", { ascending: true });
-  if (errorVarian) console.error("Gagal mengambil varian produk:", errorVarian.message);
+  if (errorVarian) logServerError("Gagal mengambil varian produk:", errorVarian);
   const varian = errorVarian ? [] : varianProduk ?? [];
 
   let produkTerkait = [];
@@ -110,7 +111,7 @@ export default async function HalamanDetailProduk({ params }) {
       .limit(4);
 
     if (errorTerkait) {
-      console.error("Gagal mengambil produk terkait:", errorTerkait.message);
+      logServerError("Gagal mengambil produk terkait:", errorTerkait);
     } else {
       produkTerkait = data ?? [];
     }

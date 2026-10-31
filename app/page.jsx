@@ -6,6 +6,7 @@ import { toko } from "@/lib/toko";
 import { BagianTerakhirDilihat } from "@/components/ProdukTerakhirDilihat";
 import { createSupabasePublicServerClient } from "@/lib/supabase/public-server";
 import { ambilPengaturanToko } from "@/lib/pengaturan-toko";
+import { logServerError } from "@/lib/log-error";
 
 export default async function HalamanKatalog({ searchParams }) {
   const pengaturanToko = await ambilPengaturanToko();
@@ -39,7 +40,7 @@ export default async function HalamanKatalog({ searchParams }) {
     if (error) throw error;
     bannerPromo = data ?? [];
   } catch (error) {
-    console.error("Gagal mengambil banner promo:", error?.message ?? error);
+    logServerError("Gagal mengambil banner promo:", error);
     pesanErrorBanner = "Banner promo belum dapat dimuat saat ini.";
   }
 
@@ -111,7 +112,7 @@ export default async function HalamanKatalog({ searchParams }) {
 
     daftarProduk = hasilQuery.data ?? [];
   } catch (error) {
-    console.error("Gagal mengambil daftar produk dari Supabase:", error);
+    logServerError("Gagal mengambil daftar produk dari Supabase:", error);
     pesanError = "Produk gagal dimuat. Silakan coba lagi nanti.";
   }
 

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseSessionClient } from "@/lib/supabase/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { logServerError } from "@/lib/log-error";
 
 const BUCKET_FOTO_PRODUK = "foto-produk";
 const UKURAN_MAKS_FOTO = 4 * 1024 * 1024;
@@ -209,9 +210,9 @@ async function hapusUploadFoto(supabase, paths) {
   if (paths.length === 0) return;
   try {
     const { error } = await supabase.storage.from(BUCKET_FOTO_PRODUK).remove(paths);
-    if (error) console.error("Gagal membersihkan upload foto:", error.message);
+    if (error) logServerError("Gagal membersihkan upload foto:", error);
   } catch (error) {
-    console.error("Gagal membersihkan upload foto:", error);
+    logServerError("Gagal membersihkan upload foto:", error);
   }
 }
 
@@ -230,7 +231,7 @@ async function unggahFileFoto(supabase, files) {
       if (error) throw error;
       urlFoto.push(supabase.storage.from(BUCKET_FOTO_PRODUK).getPublicUrl(data.path).data.publicUrl);
     } catch (error) {
-      console.error("Gagal mengunggah foto produk:", error?.message ?? error);
+      logServerError("Gagal mengunggah foto produk:", error);
       await hapusUploadFoto(supabase, paths);
       return { urlFoto: [], paths: [], error: "Foto gagal diunggah. Periksa bucket foto-produk lalu coba lagi." };
     }
@@ -444,13 +445,13 @@ export async function simpanProduk(_previousState, formData) {
   try {
     ({ data: dataProduk, error } = await supabase.from("produk").insert(produk).select("id").single());
   } catch (insertError) {
-    console.error("Gagal menyimpan produk:", insertError);
+    logServerError("Gagal menyimpan produk:", insertError);
     await hapusUploadFoto(supabase, paths);
     return { errors: { form: "Produk gagal disimpan. Periksa data dan coba lagi." }, values: nilai };
   }
 
   if (error) {
-    console.error("Gagal menyimpan produk:", error.message);
+    logServerError("Gagal menyimpan produk:", error);
     await hapusUploadFoto(supabase, paths);
     return { errors: { form: "Produk gagal disimpan. Periksa data dan coba lagi." }, values: nilai };
   }
@@ -458,7 +459,7 @@ export async function simpanProduk(_previousState, formData) {
   try {
     await gantiVarianProduk(supabase, dataProduk.id, hasilVarian.data);
   } catch (errorVarian) {
-    console.error("Gagal menyimpan varian produk:", errorVarian?.message ?? errorVarian);
+    logServerError("Gagal menyimpan varian produk:", errorVarian);
     return { errors: { form: "Produk tersimpan, tetapi variannya gagal disimpan. Buka produk untuk mengatur ulang variannya." }, values: nilai };
   }
 
@@ -523,13 +524,13 @@ export async function ubahProduk(_previousState, formData) {
       .select("id")
       .maybeSingle());
   } catch (updateError) {
-    console.error("Gagal mengubah produk:", updateError);
+    logServerError("Gagal mengubah produk:", updateError);
     await hapusUploadFoto(supabase, paths);
     return { errors: { form: "Perubahan produk gagal disimpan. Periksa data dan coba lagi." }, values: nilai };
   }
 
   if (error) {
-    console.error("Gagal mengubah produk:", error.message);
+    logServerError("Gagal mengubah produk:", error);
     await hapusUploadFoto(supabase, paths);
     return { errors: { form: "Perubahan produk gagal disimpan. Periksa data dan coba lagi." }, values: nilai };
   }
@@ -542,7 +543,7 @@ export async function ubahProduk(_previousState, formData) {
   try {
     await gantiVarianProduk(supabase, id, hasilVarian.data);
   } catch (errorVarian) {
-    console.error("Gagal menyimpan varian produk:", errorVarian?.message ?? errorVarian);
+    logServerError("Gagal menyimpan varian produk:", errorVarian);
     return { errors: { form: "Data produk tersimpan, tetapi variannya gagal disimpan. Coba simpan perubahan lagi." }, values: nilai };
   }
 
@@ -580,12 +581,12 @@ export async function hapusProduk(formData) {
       .select("id")
       .maybeSingle());
   } catch (deleteError) {
-    console.error("Gagal menghapus produk:", deleteError);
+    logServerError("Gagal menghapus produk:", deleteError);
     redirect("/admin?error=delete_failed");
   }
 
   if (error) {
-    console.error("Gagal menghapus produk:", error.message);
+    logServerError("Gagal menghapus produk:", error);
     redirect("/admin?error=delete_failed");
   }
 
@@ -622,12 +623,12 @@ export async function ubahStatusProduk(formData) {
       .eq("id", id)
       .maybeSingle());
   } catch (readError) {
-    console.error("Gagal membaca status produk:", readError);
+    logServerError("Gagal membaca status produk:", readError);
     redirect("/admin?error=status_failed");
   }
 
   if (error) {
-    console.error("Gagal membaca status produk:", error.message);
+    logServerError("Gagal membaca status produk:", error);
     redirect("/admin?error=status_failed");
   }
   if (!produk) redirect("/admin?error=not_found");
@@ -642,12 +643,12 @@ export async function ubahStatusProduk(formData) {
       .select("id")
       .maybeSingle();
   } catch (updateError) {
-    console.error("Gagal mengubah status produk:", updateError);
+    logServerError("Gagal mengubah status produk:", updateError);
     redirect("/admin?error=status_failed");
   }
 
   if (hasil.error) {
-    console.error("Gagal mengubah status produk:", hasil.error.message);
+    logServerError("Gagal mengubah status produk:", hasil.error);
     redirect("/admin?error=status_failed");
   }
   if (!hasil.data) redirect("/admin?error=status_conflict");
@@ -681,12 +682,12 @@ export async function ubahUrutanProduk(formData) {
       p_arah: arah,
     });
   } catch (error) {
-    console.error("Gagal mengubah urutan produk:", error?.message ?? error);
+    logServerError("Gagal mengubah urutan produk:", error);
     redirect("/admin?error=order_failed");
   }
 
   if (hasil.error) {
-    console.error("Gagal mengubah urutan produk:", hasil.error.message);
+    logServerError("Gagal mengubah urutan produk:", hasil.error);
     redirect("/admin?error=order_failed");
   }
   if (hasil.data === "not_found") redirect("/admin?error=not_found");
@@ -754,7 +755,7 @@ export async function buatDeskripsiProduk(nama, kategori) {
     const hasil = await response.json();
 
     if (!response.ok) {
-      console.error("OpenAI API gagal membuat deskripsi:", response.status, hasil?.error?.code);
+      logServerError("OpenAI API gagal membuat deskripsi:", response.status, hasil?.error?.code);
       return {
         error:
           response.status === 429
@@ -776,7 +777,7 @@ export async function buatDeskripsiProduk(nama, kategori) {
 
     return { description: deskripsi };
   } catch (error) {
-    console.error("Permintaan deskripsi AI gagal:", error);
+    logServerError("Permintaan deskripsi AI gagal:", error);
     return {
       error:
         error?.name === "TimeoutError"
@@ -1151,12 +1152,12 @@ export async function simpanPengaturanToko(formData) {
       .from("pengaturan_toko")
       .upsert(pengaturan, { onConflict: "id" }));
   } catch (saveError) {
-    console.error("Gagal menyimpan pengaturan toko:", saveError?.message ?? saveError);
+    logServerError("Gagal menyimpan pengaturan toko:", saveError);
     redirect("/admin/pengaturan?status=save_failed");
   }
 
   if (error) {
-    console.error("Gagal menyimpan pengaturan toko:", error.message);
+    logServerError("Gagal menyimpan pengaturan toko:", error);
     redirect("/admin/pengaturan?status=save_failed");
   }
 
@@ -1184,7 +1185,7 @@ async function clientAdminUntukKelolaAkun() {
   try {
     return { supabase: createSupabaseServerClient(), user };
   } catch (error) {
-    console.error("Konfigurasi pengelolaan akun admin tidak tersedia:", error?.message ?? error);
+    logServerError("Konfigurasi pengelolaan akun admin tidak tersedia:", error);
     redirect("/admin/akun?status=service_unavailable");
   }
 }
@@ -1203,11 +1204,11 @@ export async function undangAdmin(formData) {
   try {
     ({ error } = await supabase.auth.admin.inviteUserByEmail(email));
   } catch (inviteError) {
-    console.error("Gagal mengundang akun admin:", inviteError?.message ?? inviteError);
+    logServerError("Gagal mengundang akun admin:", inviteError);
     redirect("/admin/akun?status=invite_failed");
   }
   if (error) {
-    console.error("Gagal mengundang akun admin:", error.message);
+    logServerError("Gagal mengundang akun admin:", error);
     redirect("/admin/akun?status=invite_failed");
   }
 
@@ -1235,11 +1236,11 @@ export async function ubahStatusAdmin(formData) {
       ban_duration: nonaktifkan ? "876000h" : "none",
     }));
   } catch (updateError) {
-    console.error("Gagal mengubah status akun admin:", updateError?.message ?? updateError);
+    logServerError("Gagal mengubah status akun admin:", updateError);
     redirect("/admin/akun?status=update_failed");
   }
   if (error) {
-    console.error("Gagal mengubah status akun admin:", error.message);
+    logServerError("Gagal mengubah status akun admin:", error);
     redirect("/admin/akun?status=update_failed");
   }
 
@@ -1260,11 +1261,11 @@ export async function hapusAdmin(formData) {
   try {
     ({ error } = await supabase.auth.admin.deleteUser(id));
   } catch (deleteError) {
-    console.error("Gagal menghapus akun admin:", deleteError?.message ?? deleteError);
+    logServerError("Gagal menghapus akun admin:", deleteError);
     redirect("/admin/akun?status=delete_failed");
   }
   if (error) {
-    console.error("Gagal menghapus akun admin:", error.message);
+    logServerError("Gagal menghapus akun admin:", error);
     redirect("/admin/akun?status=delete_failed");
   }
 
@@ -1337,11 +1338,11 @@ export async function imporProduk(_state, formData) {
   try {
     ({ data: dataKategori, error: errorKategori } = await supabase.from("kategori").select("nama"));
   } catch (error) {
-    console.error("Gagal membaca kategori untuk impor CSV:", error?.message ?? error);
+    logServerError("Gagal membaca kategori untuk impor CSV:", error);
     return { message: "Daftar kategori gagal dimuat. Periksa koneksi database lalu coba lagi.", successCount: 0, failedCount: 0, errors: [] };
   }
   if (errorKategori) {
-    console.error("Gagal membaca kategori untuk impor CSV:", errorKategori.message);
+    logServerError("Gagal membaca kategori untuk impor CSV:", errorKategori);
     return { message: "Daftar kategori gagal dimuat. Pastikan tabel kategori tersedia.", successCount: 0, failedCount: 0, errors: [] };
   }
 
@@ -1370,7 +1371,7 @@ export async function imporProduk(_state, formData) {
         .insert(produkValid.map((item) => item.produk));
       if (error) throw error;
     } catch (error) {
-      console.error("Gagal menyimpan hasil impor produk:", error?.message ?? error);
+      logServerError("Gagal menyimpan hasil impor produk:", error);
       const alasan = "Gagal disimpan oleh database. Periksa struktur tabel dan nilai kategori.";
       errors.push(...produkValid.map((item) => ({ baris: item.baris, pesan: alasan })));
       return {

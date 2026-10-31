@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createSupabasePublicServerClient } from "@/lib/supabase/public-server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { logServerError } from "@/lib/log-error";
 
 const BATAS_PERTANYAAN = 500;
 const JENDELA_LIMIT_MS = 60_000;
@@ -106,7 +107,7 @@ export async function kirimUlasan(_state, formData) {
     });
     if (error) throw error;
   } catch (error) {
-    console.error("Gagal menyimpan ulasan:", error?.message ?? error);
+    logServerError("Gagal menyimpan ulasan:", error);
     return {
       errors: { form: "Ulasan gagal dikirim. Periksa koneksi lalu coba lagi." },
       values,
@@ -175,7 +176,7 @@ export async function tanyaAsistenProduk(_state, formData) {
     if (errorVarian) throw errorVarian;
     varian = dataVarian ?? [];
   } catch (error) {
-    console.error("Gagal menyiapkan konteks asisten produk:", error?.message ?? error);
+    logServerError("Gagal menyiapkan konteks asisten produk:", error);
     return { error: "Informasi produk belum dapat dimuat. Silakan coba lagi nanti.", values };
   }
 
@@ -219,7 +220,7 @@ export async function tanyaAsistenProduk(_state, formData) {
       return { error: "Layanan asisten memberi respons yang tidak dapat dibaca. Coba lagi nanti.", values };
     }
     if (!response.ok) {
-      console.error("OpenAI gagal menjawab pertanyaan produk:", response.status, hasil?.error?.code);
+      logServerError("OpenAI gagal menjawab pertanyaan produk:", response.status, hasil?.error?.code);
       return {
         error: response.status === 429
           ? "Asisten sedang sibuk. Silakan coba lagi beberapa saat."
@@ -233,7 +234,7 @@ export async function tanyaAsistenProduk(_state, formData) {
     return { answer: jawaban, values };
   } catch (error) {
     const timeout = error?.name === "TimeoutError" || error?.name === "AbortError";
-    console.error("Permintaan asisten produk gagal:", timeout ? "timeout" : error?.message ?? "network error");
+    logServerError("Permintaan asisten produk gagal:", timeout ? "timeout" : error);
     return {
       error: timeout
         ? "Asisten terlalu lama merespons. Silakan coba lagi."

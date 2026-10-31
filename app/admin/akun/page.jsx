@@ -1,4 +1,5 @@
 import NavAdmin from "@/components/NavAdmin";
+import { logServerError } from "@/lib/log-error";
 import Input from "@/components/Input";
 import Tombol from "@/components/Tombol";
 import { hapusAdmin, ubahStatusAdmin, undangAdmin } from "@/app/admin/actions";
@@ -51,7 +52,7 @@ export default async function HalamanAdminAkun({ searchParams }) {
       }
     }
   } catch (error) {
-    console.error("Gagal mengambil daftar akun admin:", error?.message ?? error);
+    logServerError("Gagal mengambil daftar akun admin:", error);
     errorQuery = true;
   }
 

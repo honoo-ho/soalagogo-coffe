@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { logServerError } from "@/lib/log-error";
 
 const JUMLAH_MAKS_PRODUK = 50;
 
@@ -33,7 +34,7 @@ export async function POST(request) {
       .eq("aktif", true);
 
     if (errorProduk) {
-      console.error("Gagal memeriksa produk untuk pencatatan WhatsApp:", errorProduk.message);
+      logServerError("Gagal memeriksa produk untuk pencatatan WhatsApp:", errorProduk);
       return NextResponse.json({ error: "Pencatatan belum dapat dilakukan." }, { status: 503 });
     }
 
@@ -45,14 +46,14 @@ export async function POST(request) {
     if (catatan.length > 0) {
       const { error } = await supabase.from("klik_whatsapp").insert(catatan);
       if (error) {
-        console.error("Gagal menyimpan pencatatan klik WhatsApp:", error.message);
+        logServerError("Gagal menyimpan pencatatan klik WhatsApp:", error);
         return NextResponse.json({ error: "Pencatatan belum dapat dilakukan." }, { status: 503 });
       }
     }
 
     return new Response(null, { status: 204 });
   } catch (error) {
-    console.error("Gagal mencatat klik WhatsApp:", error?.message ?? error);
+    logServerError("Gagal mencatat klik WhatsApp:", error);
     return NextResponse.json({ error: "Pencatatan belum dapat dilakukan." }, { status: 503 });
   }
 }

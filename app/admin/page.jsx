@@ -3,6 +3,7 @@ import NavAdmin from "@/components/NavAdmin";
 import TabelProduk from "@/components/TabelProduk";
 import Tombol from "@/components/Tombol";
 import { createSupabaseSessionClient } from "@/lib/supabase/session";
+import { logServerError } from "@/lib/log-error";
 
 const UKURAN_BATCH = 1000;
 const UKURAN_HALAMAN = 20;
@@ -135,12 +136,12 @@ export default async function HalamanAdmin({ searchParams }) {
           .map(([id, jumlah]) => ({ id, nama: namaProduk.get(id), jumlah }));
       }
     } catch (error) {
-      console.error("Gagal mengambil ringkasan klik WhatsApp:", error?.message ?? error);
+      logServerError("Gagal mengambil ringkasan klik WhatsApp:", error);
       errorKlik = true;
       produkTerlaris = [];
     }
   } catch (error) {
-    console.error("Gagal mengambil daftar produk admin:", error?.message ?? error);
+    logServerError("Gagal mengambil daftar produk admin:", error);
     errorQuery = error;
     daftarProduk = [];
     jumlahProduk = 0;

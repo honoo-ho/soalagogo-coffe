@@ -2,6 +2,7 @@ import NavAdmin from "@/components/NavAdmin";
 import Tombol from "@/components/Tombol";
 import { hapusUlasan, ubahStatusUlasan } from "@/app/admin/actions";
 import { createSupabaseSessionClient } from "@/lib/supabase/session";
+import { logServerError } from "@/lib/log-error";
 
 const PESAN_STATUS = {
   hidden: { teks: "Ulasan disembunyikan dari halaman publik.", role: "status" },
@@ -45,7 +46,7 @@ export default async function HalamanAdminUlasan({ searchParams }) {
       }));
     }
   } catch (error) {
-    console.error("Gagal mengambil daftar ulasan admin:", error?.message ?? error);
+    logServerError("Gagal mengambil daftar ulasan admin:", error);
     errorQuery = true;
     daftarUlasan = [];
   }

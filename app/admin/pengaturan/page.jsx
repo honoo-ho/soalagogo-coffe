@@ -4,6 +4,7 @@ import Tombol from "@/components/Tombol";
 import { simpanPengaturanToko } from "@/app/admin/actions";
 import { createSupabaseSessionClient } from "@/lib/supabase/session";
 import { toko } from "@/lib/toko";
+import { logServerError } from "@/lib/log-error";
 
 const PESAN_STATUS = {
   saved: { teks: "Pengaturan toko berhasil disimpan.", berhasil: true },
@@ -40,7 +41,7 @@ export default async function HalamanPengaturanToko({ searchParams }) {
       };
     }
   } catch (error) {
-    console.error("Gagal mengambil pengaturan admin toko:", error?.message ?? error);
+    logServerError("Gagal mengambil pengaturan admin toko:", error);
     errorQuery = true;
   }
 
