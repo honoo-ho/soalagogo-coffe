@@ -9,6 +9,7 @@ import { PengaturanTokoProvider } from "@/components/PengaturanTokoProvider";
 import { ambilPengaturanToko } from "@/lib/pengaturan-toko";
 import { toko } from "@/lib/toko";
 import Script from "next/script";
+import { headers } from "next/headers";
 
 export async function generateMetadata() {
   const pengaturanToko = await ambilPengaturanToko();
@@ -25,6 +26,7 @@ export const viewport = {
 
 export default async function RootLayout({ children }) {
   const pengaturanToko = await ambilPengaturanToko();
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   return (
     <html lang="id" suppressHydrationWarning>
@@ -37,7 +39,7 @@ export default async function RootLayout({ children }) {
         />
       </head>
       <body className="flex min-h-screen flex-col font-sans antialiased">
-        <Script id="theme-init" src="/theme-init.js" strategy="beforeInteractive" />
+        <Script id="theme-init" src="/theme-init.js" strategy="beforeInteractive" nonce={nonce} />
         <PengaturanTokoProvider pengaturan={pengaturanToko}>
           <ProdukTerakhirDilihatProvider>
             <PerbandinganProvider>
