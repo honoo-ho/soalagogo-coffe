@@ -6,6 +6,7 @@ import Tombol from "@/components/Tombol";
 export default function FormProduk({ produk = {}, labelTombol, action }) {
   return (
     <form action={action} className="flex max-w-xl flex-col gap-4">
+      {produk.id ? <input type="hidden" name="id" value={produk.id} /> : null}
       <Input label="Nama produk" name="nama" defaultValue={produk.nama} required />
       <Input
         label="Harga (Rp)"

@@ -114,3 +114,67 @@ export async function simpanProduk(formData) {
 
   redirect("/admin");
 }
+
+export async function ubahProduk(formData) {
+  let supabase;
+  let user;
+
+  try {
+    supabase = await createSupabaseSessionClient();
+    const { data, error } = await supabase.auth.getUser();
+    user = error ? null : data.user;
+  } catch {
+    user = null;
+  }
+
+  if (!user) {
+    redirect("/admin/login");
+  }
+
+  const id = String(formData.get("id") ?? "").trim();
+  if (!/^\d+$/.test(id)) {
+    redirect("/admin?error=invalid_id");
+  }
+
+  const pathUbah = `/admin/produk/${id}/ubah`;
+  const nama = String(formData.get("nama") ?? "").trim();
+  const hargaText = String(formData.get("harga") ?? "").trim();
+  const harga = Number(hargaText);
+
+  if (!nama || !hargaText || !Number.isInteger(harga) || harga < 0) {
+    redirect(`${pathUbah}?error=invalid_data`);
+  }
+
+  const perubahan = {
+    nama,
+    harga,
+    kategori: String(formData.get("kategori") ?? "").trim() || null,
+    foto_url: String(formData.get("foto_url") ?? "").trim() || null,
+    deskripsi: String(formData.get("deskripsi") ?? "").trim() || null,
+  };
+
+  let data;
+  let error;
+  try {
+    ({ data, error } = await supabase
+      .from("produk")
+      .update(perubahan)
+      .eq("id", id)
+      .select("id")
+      .maybeSingle());
+  } catch (updateError) {
+    console.error("Gagal mengubah produk:", updateError);
+    redirect(`${pathUbah}?error=save_failed`);
+  }
+
+  if (error) {
+    console.error("Gagal mengubah produk:", error.message);
+    redirect(`${pathUbah}?error=save_failed`);
+  }
+
+  if (!data) {
+    redirect(`${pathUbah}?error=not_found`);
+  }
+
+  redirect("/admin");
+}
