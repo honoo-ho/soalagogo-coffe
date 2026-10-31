@@ -225,3 +225,90 @@ export async function hapusProduk(formData) {
 
   redirect("/admin");
 }
+
+export async function buatDeskripsiProduk(nama, kategori) {
+  let supabase;
+  let user;
+
+  try {
+    supabase = await createSupabaseSessionClient();
+    const { data, error } = await supabase.auth.getUser();
+    user = error ? null : data.user;
+  } catch {
+    user = null;
+  }
+
+  if (!user) {
+    return { error: "Sesi admin tidak valid. Silakan masuk kembali." };
+  }
+
+  const namaProduk = typeof nama === "string" ? nama.trim() : "";
+  const kategoriProduk = typeof kategori === "string" ? kategori.trim() : "";
+
+  if (!namaProduk || namaProduk.length > 120) {
+    return { error: "Isi nama produk (maksimal 120 karakter) sebelum membuat deskripsi." };
+  }
+
+  if (kategoriProduk.length > 80) {
+    return { error: "Kategori maksimal 80 karakter." };
+  }
+
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    return { error: "OPENAI_API_KEY belum diatur di environment server." };
+  }
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-6-luna",
+        reasoning: { effort: "none" },
+        instructions:
+          "Tulis deskripsi produk singkat dalam bahasa Indonesia, 1 sampai 3 kalimat. Gunakan hanya informasi dari nama dan kategori yang diberikan. Jangan mengarang bahan, ukuran, asal, manfaat, stok, atau klaim lain yang tidak disebutkan. Kembalikan hanya teks deskripsi.",
+        input: `Nama produk: ${namaProduk}\nKategori: ${kategoriProduk || "Tidak disebutkan"}`,
+        max_output_tokens: 180,
+        store: false,
+      }),
+      signal: AbortSignal.timeout(20000),
+      cache: "no-store",
+    });
+
+    const hasil = await response.json();
+
+    if (!response.ok) {
+      console.error("OpenAI API gagal membuat deskripsi:", response.status, hasil?.error?.code);
+      return {
+        error:
+          response.status === 429
+            ? "Batas penggunaan AI tercapai. Coba lagi nanti."
+            : "Deskripsi gagal dibuat oleh AI. Periksa konfigurasi API lalu coba lagi.",
+      };
+    }
+
+    const deskripsi = (hasil.output ?? [])
+      .flatMap((item) => item.content ?? [])
+      .filter((item) => item.type === "output_text")
+      .map((item) => item.text)
+      .join("\n")
+      .trim();
+
+    if (!deskripsi) {
+      return { error: "AI tidak menghasilkan deskripsi. Silakan coba lagi." };
+    }
+
+    return { description: deskripsi };
+  } catch (error) {
+    console.error("Permintaan deskripsi AI gagal:", error);
+    return {
+      error:
+        error?.name === "TimeoutError"
+          ? "Permintaan AI melewati batas waktu. Silakan coba lagi."
+          : "Layanan AI tidak dapat dihubungi. Periksa koneksi lalu coba lagi.",
+    };
+  }
+}
