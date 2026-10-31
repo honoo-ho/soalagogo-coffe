@@ -31,34 +31,34 @@ function signatureGambarValid(tipe, bytes) {
   return false;
 }
 
-async function validasiFileFoto(formData, pathKembali) {
+async function validasiFileFoto(formData) {
   const files = formData
     .getAll("foto_file")
     .filter((file) => typeof file !== "string" && file.name);
 
   if (files.length > JUMLAH_MAKS_FOTO) {
-    redirect(`${pathKembali}?error=too_many_images`);
+    return { files, error: "Pilih maksimal 10 foto." };
   }
 
   if (files.reduce((total, file) => total + file.size, 0) > UKURAN_MAKS_TOTAL_FOTO) {
-    redirect(`${pathKembali}?error=image_too_large`);
+    return { files, error: "Ukuran total foto maksimal 4 MB." };
   }
 
   for (const file of files) {
     if (!EKSTENSI_FOTO[file.type] || file.size === 0) {
-      redirect(`${pathKembali}?error=invalid_image`);
+      return { files, error: "Foto harus berupa JPG, PNG, WebP, atau GIF yang valid." };
     }
     if (file.size > UKURAN_MAKS_FOTO) {
-      redirect(`${pathKembali}?error=image_too_large`);
+      return { files, error: "Ukuran setiap foto maksimal 4 MB." };
     }
 
     const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
     if (!signatureGambarValid(file.type, bytes)) {
-      redirect(`${pathKembali}?error=invalid_image`);
+      return { files, error: "Isi file tidak cocok dengan tipe gambar yang dipilih." };
     }
   }
 
-  return files;
+  return { files, error: null };
 }
 
 async function hapusUploadFoto(supabase, paths) {
@@ -71,7 +71,7 @@ async function hapusUploadFoto(supabase, paths) {
   }
 }
 
-async function unggahFileFoto(supabase, files, pathKembali) {
+async function unggahFileFoto(supabase, files) {
   const urlFoto = [];
   const paths = [];
 
@@ -88,21 +88,64 @@ async function unggahFileFoto(supabase, files, pathKembali) {
     } catch (error) {
       console.error("Gagal mengunggah foto produk:", error?.message ?? error);
       await hapusUploadFoto(supabase, paths);
-      redirect(`${pathKembali}?error=upload_failed`);
+      return { urlFoto: [], paths: [], error: "Foto gagal diunggah. Periksa bucket foto-produk lalu coba lagi." };
     }
   }
 
-  return { urlFoto, paths };
+  return { urlFoto, paths, error: null };
 }
 
 async function kategoriTersedia(supabase, nama) {
   if (!nama) return true;
-  const { data, error } = await supabase
-    .from("kategori")
-    .select("nama")
-    .eq("nama", nama)
-    .maybeSingle();
-  return !error && Boolean(data);
+  try {
+    const { data, error } = await supabase
+      .from("kategori")
+      .select("nama")
+      .eq("nama", nama)
+      .maybeSingle();
+    return !error && Boolean(data);
+  } catch {
+    return false;
+  }
+}
+
+function ambilNilaiFormProduk(formData) {
+  return {
+    nama: String(formData.get("nama") ?? "").trim(),
+    harga: String(formData.get("harga") ?? "").trim(),
+    harga_diskon: String(formData.get("harga_diskon") ?? "").trim(),
+    kategori: String(formData.get("kategori") ?? "").trim(),
+    badge: String(formData.get("badge") ?? "").trim(),
+    stok: String(formData.get("stok") ?? "").trim(),
+    foto_url: String(formData.get("foto_url") ?? ""),
+    deskripsi: String(formData.get("deskripsi") ?? ""),
+  };
+}
+
+function validasiNilaiFormProduk(nilai) {
+  const errors = {};
+  const harga = Number(nilai.harga);
+  const hargaDiskon = nilai.harga_diskon === "" ? null : Number(nilai.harga_diskon);
+  const stok = nilai.stok === "" ? null : Number(nilai.stok);
+
+  if (!nilai.nama) errors.nama = "Nama produk wajib diisi.";
+  if (!nilai.harga || !Number.isInteger(harga) || harga <= 0) {
+    errors.harga = "Harga harus berupa bilangan bulat positif.";
+  }
+  if (
+    hargaDiskon !== null &&
+    (!Number.isInteger(hargaDiskon) || hargaDiskon < 0 || hargaDiskon >= harga)
+  ) {
+    errors.harga_diskon = "Harga diskon harus bilangan bulat dan lebih rendah dari harga normal.";
+  }
+  if (nilai.badge && !["baru", "terlaris"].includes(nilai.badge)) {
+    errors.badge = "Pilih badge yang tersedia.";
+  }
+  if (stok !== null && (!Number.isInteger(stok) || stok < 0)) {
+    errors.stok = "Stok harus bilangan bulat minimal 0.";
+  }
+
+  return { errors, harga, hargaDiskon, stok };
 }
 
 function gabungkanFotoProduk(formData, urlFoto) {
@@ -177,7 +220,7 @@ export async function gantiPasswordAdmin(formData) {
   redirect(`/admin/password?status=${status}`);
 }
 
-export async function simpanProduk(formData) {
+export async function simpanProduk(_previousState, formData) {
   let supabase;
   let user;
 
@@ -193,46 +236,29 @@ export async function simpanProduk(formData) {
     redirect("/admin/login");
   }
 
-  const nama = String(formData.get("nama") ?? "").trim();
-  const hargaText = String(formData.get("harga") ?? "").trim();
-  const harga = Number(hargaText);
-  const hargaDiskonText = String(formData.get("harga_diskon") ?? "").trim();
-  const hargaDiskon = hargaDiskonText === "" ? null : Number(hargaDiskonText);
-  const badgeInput = String(formData.get("badge") ?? "").trim();
-  const badge = badgeInput || null;
-  const stokText = String(formData.get("stok") ?? "").trim();
-  const stok = stokText === "" ? null : Number(stokText);
-  const kategori = String(formData.get("kategori") ?? "").trim();
-
-  if (
-    !nama ||
-    !hargaText ||
-    !Number.isInteger(harga) ||
-    harga < 0 ||
-    (hargaDiskon !== null &&
-      (!Number.isInteger(hargaDiskon) || hargaDiskon < 0 || hargaDiskon >= harga)) ||
-    (badge !== null && !["baru", "terlaris"].includes(badge)) ||
-    (stok !== null && (!Number.isInteger(stok) || stok < 0))
-  ) {
-    redirect("/admin/produk/baru?error=invalid_data");
+  const nilai = ambilNilaiFormProduk(formData);
+  const { errors, harga, hargaDiskon, stok } = validasiNilaiFormProduk(nilai);
+  if (nilai.kategori && !(await kategoriTersedia(supabase, nilai.kategori))) {
+    errors.kategori = "Kategori tidak tersedia. Pilih kategori dari daftar.";
   }
+  if (Object.keys(errors).length > 0) return { errors, values: nilai };
 
-  if (!(await kategoriTersedia(supabase, kategori))) {
-    redirect("/admin/produk/baru?error=invalid_category");
+  const hasilValidasiFoto = await validasiFileFoto(formData);
+  if (hasilValidasiFoto.error) {
+    return { errors: { foto_file: hasilValidasiFoto.error }, values: nilai };
   }
-
-  const files = await validasiFileFoto(formData, "/admin/produk/baru");
-  const { urlFoto, paths } = await unggahFileFoto(supabase, files, "/admin/produk/baru");
+  const { urlFoto, paths, error: errorUnggah } = await unggahFileFoto(supabase, hasilValidasiFoto.files);
+  if (errorUnggah) return { errors: { foto_file: errorUnggah }, values: nilai };
 
   const produk = {
-    nama,
+    nama: nilai.nama,
     harga,
     harga_diskon: hargaDiskon,
-    badge,
+    badge: nilai.badge || null,
     stok,
-    kategori: kategori || null,
+    kategori: nilai.kategori || null,
     foto_url: gabungkanFotoProduk(formData, urlFoto),
-    deskripsi: String(formData.get("deskripsi") ?? "").trim() || null,
+    deskripsi: nilai.deskripsi.trim() || null,
   };
 
   let error;
@@ -241,19 +267,19 @@ export async function simpanProduk(formData) {
   } catch (insertError) {
     console.error("Gagal menyimpan produk:", insertError);
     await hapusUploadFoto(supabase, paths);
-    redirect("/admin/produk/baru?error=save_failed");
+    return { errors: { form: "Produk gagal disimpan. Periksa data dan coba lagi." }, values: nilai };
   }
 
   if (error) {
     console.error("Gagal menyimpan produk:", error.message);
     await hapusUploadFoto(supabase, paths);
-    redirect("/admin/produk/baru?error=save_failed");
+    return { errors: { form: "Produk gagal disimpan. Periksa data dan coba lagi." }, values: nilai };
   }
 
   redirect("/admin");
 }
 
-export async function ubahProduk(formData) {
+export async function ubahProduk(_previousState, formData) {
   let supabase;
   let user;
 
@@ -274,47 +300,29 @@ export async function ubahProduk(formData) {
     redirect("/admin?error=invalid_id");
   }
 
-  const pathUbah = `/admin/produk/${id}/ubah`;
-  const nama = String(formData.get("nama") ?? "").trim();
-  const hargaText = String(formData.get("harga") ?? "").trim();
-  const harga = Number(hargaText);
-  const hargaDiskonText = String(formData.get("harga_diskon") ?? "").trim();
-  const hargaDiskon = hargaDiskonText === "" ? null : Number(hargaDiskonText);
-  const badgeInput = String(formData.get("badge") ?? "").trim();
-  const badge = badgeInput || null;
-  const stokText = String(formData.get("stok") ?? "").trim();
-  const stok = stokText === "" ? null : Number(stokText);
-  const kategori = String(formData.get("kategori") ?? "").trim();
-
-  if (
-    !nama ||
-    !hargaText ||
-    !Number.isInteger(harga) ||
-    harga < 0 ||
-    (hargaDiskon !== null &&
-      (!Number.isInteger(hargaDiskon) || hargaDiskon < 0 || hargaDiskon >= harga)) ||
-    (badge !== null && !["baru", "terlaris"].includes(badge)) ||
-    (stok !== null && (!Number.isInteger(stok) || stok < 0))
-  ) {
-    redirect(`${pathUbah}?error=invalid_data`);
+  const nilai = ambilNilaiFormProduk(formData);
+  const { errors, harga, hargaDiskon, stok } = validasiNilaiFormProduk(nilai);
+  if (nilai.kategori && !(await kategoriTersedia(supabase, nilai.kategori))) {
+    errors.kategori = "Kategori tidak tersedia. Pilih kategori dari daftar.";
   }
+  if (Object.keys(errors).length > 0) return { errors, values: nilai };
 
-  if (!(await kategoriTersedia(supabase, kategori))) {
-    redirect(`${pathUbah}?error=invalid_category`);
+  const hasilValidasiFoto = await validasiFileFoto(formData);
+  if (hasilValidasiFoto.error) {
+    return { errors: { foto_file: hasilValidasiFoto.error }, values: nilai };
   }
-
-  const files = await validasiFileFoto(formData, pathUbah);
-  const { urlFoto, paths } = await unggahFileFoto(supabase, files, pathUbah);
+  const { urlFoto, paths, error: errorUnggah } = await unggahFileFoto(supabase, hasilValidasiFoto.files);
+  if (errorUnggah) return { errors: { foto_file: errorUnggah }, values: nilai };
 
   const perubahan = {
-    nama,
+    nama: nilai.nama,
     harga,
     harga_diskon: hargaDiskon,
-    badge,
+    badge: nilai.badge || null,
     stok,
-    kategori: kategori || null,
+    kategori: nilai.kategori || null,
     foto_url: gabungkanFotoProduk(formData, urlFoto),
-    deskripsi: String(formData.get("deskripsi") ?? "").trim() || null,
+    deskripsi: nilai.deskripsi.trim() || null,
   };
 
   let data;
@@ -329,18 +337,18 @@ export async function ubahProduk(formData) {
   } catch (updateError) {
     console.error("Gagal mengubah produk:", updateError);
     await hapusUploadFoto(supabase, paths);
-    redirect(`${pathUbah}?error=save_failed`);
+    return { errors: { form: "Perubahan produk gagal disimpan. Periksa data dan coba lagi." }, values: nilai };
   }
 
   if (error) {
     console.error("Gagal mengubah produk:", error.message);
     await hapusUploadFoto(supabase, paths);
-    redirect(`${pathUbah}?error=save_failed`);
+    return { errors: { form: "Perubahan produk gagal disimpan. Periksa data dan coba lagi." }, values: nilai };
   }
 
   if (!data) {
     await hapusUploadFoto(supabase, paths);
-    redirect(`${pathUbah}?error=not_found`);
+    return { errors: { form: "Produk tidak ditemukan atau sudah dihapus." }, values: nilai };
   }
 
   redirect("/admin");

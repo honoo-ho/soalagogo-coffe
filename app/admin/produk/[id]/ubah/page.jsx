@@ -32,7 +32,7 @@ export default async function HalamanUbahProduk({ params, searchParams }) {
       {statusError ? (
         <p role="alert" className="text-sm text-bahaya">
           {statusError === "invalid_data"
-            ? "Isi nama produk dan masukkan harga bilangan bulat minimal 0. Harga diskon, jika diisi, harus berupa bilangan bulat di bawah harga normal."
+            ? "Nama produk wajib diisi dan harga harus bilangan bulat positif. Harga diskon, jika diisi, harus lebih rendah dari harga normal."
             : statusError === "invalid_image"
               ? "File foto harus berupa JPG, PNG, WebP, atau GIF yang valid."
               : statusError === "image_too_large"
