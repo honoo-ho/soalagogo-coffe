@@ -2,6 +2,7 @@ import Link from "next/link";
 import { toko } from "@/lib/toko";
 import TautanKeranjang from "@/components/TautanKeranjang";
 import TautanFavorit from "@/components/TautanFavorit";
+import TombolTema from "@/components/TombolTema";
 
 export default function Header() {
   return (
@@ -10,12 +11,13 @@ export default function Header() {
         <Link href="/" className="text-lg font-extrabold tracking-tight text-utama">
           {toko.nama}
         </Link>
-        <nav aria-label="Navigasi utama" className="flex items-center gap-4">
+        <nav aria-label="Navigasi utama" className="flex items-center gap-2 sm:gap-4">
           <Link href="/tentang" className="text-sm font-semibold text-teks hover:text-utama">
             Tentang
           </Link>
           <TautanFavorit />
           <TautanKeranjang />
+          <TombolTema />
         </nav>
       </div>
     </header>

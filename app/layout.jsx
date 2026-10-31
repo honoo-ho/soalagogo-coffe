@@ -4,6 +4,14 @@ import Footer from "@/components/Footer";
 import { KeranjangProvider } from "@/components/KeranjangProvider";
 import { FavoritProvider } from "@/components/FavoritProvider";
 import { toko } from "@/lib/toko";
+import Script from "next/script";
+
+const skripTemaAwal = `try {
+  const tema = localStorage.getItem("soalagogo-tema-v1");
+  document.documentElement.dataset.theme = tema === "gelap" ? "gelap" : "terang";
+} catch {
+  document.documentElement.dataset.theme = "terang";
+}`;
 
 export const metadata = {
   title: toko.nama,
@@ -17,7 +25,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="id">
+    <html lang="id" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
@@ -27,6 +35,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className="flex min-h-screen flex-col font-sans antialiased">
+        <Script id="theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: skripTemaAwal }} />
         <KeranjangProvider>
           <FavoritProvider>
             <Header />
