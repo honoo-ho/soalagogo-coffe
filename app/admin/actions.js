@@ -728,7 +728,7 @@ export async function buatDeskripsiProduk(nama, kategori) {
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    return { error: "OPENAI_API_KEY belum diatur di environment server." };
+    return { error: "Fitur bantuan deskripsi belum tersedia. Silakan coba lagi nanti." };
   }
 
   try {
@@ -759,7 +759,7 @@ export async function buatDeskripsiProduk(nama, kategori) {
         error:
           response.status === 429
             ? "Batas penggunaan AI tercapai. Coba lagi nanti."
-            : "Deskripsi gagal dibuat oleh AI. Periksa konfigurasi API lalu coba lagi.",
+            : "Deskripsi belum dapat dibuat saat ini. Silakan coba lagi nanti.",
       };
     }
 

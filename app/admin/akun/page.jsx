@@ -83,7 +83,7 @@ export default async function HalamanAdminAkun({ searchParams }) {
       <section aria-labelledby="judul-daftar-admin" className="flex flex-col gap-4">
         <h2 id="judul-daftar-admin" className="text-xl font-bold">Daftar admin</h2>
         {errorQuery ? (
-          <p role="alert" className="text-bahaya">Daftar akun gagal dimuat. Periksa konfigurasi server dan muat ulang halaman.</p>
+          <p role="alert" className="text-bahaya">Daftar akun belum dapat dimuat. Silakan coba lagi nanti.</p>
         ) : daftarAkun.length === 0 ? (
           <p className="text-teks-lembut">Belum ada akun admin.</p>
         ) : (

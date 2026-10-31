@@ -112,10 +112,7 @@ export default async function HalamanKatalog({ searchParams }) {
     daftarProduk = hasilQuery.data ?? [];
   } catch (error) {
     console.error("Gagal mengambil daftar produk dari Supabase:", error);
-    pesanError =
-      error instanceof Error && error.message.startsWith("Konfigurasi Supabase")
-        ? error.message
-        : "Produk gagal dimuat. Silakan coba lagi nanti.";
+    pesanError = "Produk gagal dimuat. Silakan coba lagi nanti.";
   }
 
   function tautanHalaman(nomorHalaman) {
