@@ -10,13 +10,6 @@ import { ambilPengaturanToko } from "@/lib/pengaturan-toko";
 import { toko } from "@/lib/toko";
 import Script from "next/script";
 
-const skripTemaAwal = `try {
-  const tema = localStorage.getItem("soalagogo-tema-v1");
-  document.documentElement.dataset.theme = tema === "gelap" ? "gelap" : "terang";
-} catch {
-  document.documentElement.dataset.theme = "terang";
-}`;
-
 export async function generateMetadata() {
   const pengaturanToko = await ambilPengaturanToko();
   return {
@@ -44,7 +37,7 @@ export default async function RootLayout({ children }) {
         />
       </head>
       <body className="flex min-h-screen flex-col font-sans antialiased">
-        <Script id="theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: skripTemaAwal }} />
+        <Script id="theme-init" src="/theme-init.js" strategy="beforeInteractive" />
         <PengaturanTokoProvider pengaturan={pengaturanToko}>
           <ProdukTerakhirDilihatProvider>
             <PerbandinganProvider>
