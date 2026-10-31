@@ -178,3 +178,50 @@ export async function ubahProduk(formData) {
 
   redirect("/admin");
 }
+
+export async function hapusProduk(formData) {
+  let supabase;
+  let user;
+
+  try {
+    supabase = await createSupabaseSessionClient();
+    const { data, error } = await supabase.auth.getUser();
+    user = error ? null : data.user;
+  } catch {
+    user = null;
+  }
+
+  if (!user) {
+    redirect("/admin/login");
+  }
+
+  const id = String(formData.get("id") ?? "").trim();
+  if (!/^\d+$/.test(id)) {
+    redirect("/admin?error=invalid_id");
+  }
+
+  let data;
+  let error;
+  try {
+    ({ data, error } = await supabase
+      .from("produk")
+      .delete()
+      .eq("id", id)
+      .select("id")
+      .maybeSingle());
+  } catch (deleteError) {
+    console.error("Gagal menghapus produk:", deleteError);
+    redirect("/admin?error=delete_failed");
+  }
+
+  if (error) {
+    console.error("Gagal menghapus produk:", error.message);
+    redirect("/admin?error=delete_failed");
+  }
+
+  if (!data) {
+    redirect("/admin?error=not_found");
+  }
+
+  redirect("/admin");
+}

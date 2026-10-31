@@ -3,7 +3,8 @@ import TabelProduk from "@/components/TabelProduk";
 import Tombol from "@/components/Tombol";
 import { createSupabaseSessionClient } from "@/lib/supabase/session";
 
-export default async function HalamanAdmin() {
+export default async function HalamanAdmin({ searchParams }) {
+  const { error: statusError } = await searchParams;
   const supabase = await createSupabaseSessionClient();
   const { data, error } = await supabase.from("produk").select("*");
   const daftarProduk = data ?? [];
@@ -20,6 +21,15 @@ export default async function HalamanAdmin() {
         {/* US-08 (bonus): tambah produk */}
         <Tombol href="/admin/produk/baru">Tambah produk</Tombol>
       </div>
+      {statusError ? (
+        <p role="alert" className="text-sm text-bahaya">
+          {statusError === "not_found"
+            ? "Produk tidak ditemukan atau sudah dihapus."
+            : statusError === "invalid_id"
+              ? "ID produk tidak valid."
+              : "Produk gagal dihapus. Muat ulang halaman dan coba lagi."}
+        </p>
+      ) : null}
       {error ? (
         <p role="alert" className="text-bahaya">
           Daftar produk gagal dimuat. Silakan muat ulang halaman atau coba lagi nanti.
