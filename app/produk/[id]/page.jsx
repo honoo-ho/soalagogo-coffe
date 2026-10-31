@@ -14,6 +14,8 @@ import { getSiteOrigin } from "@/lib/site-url";
 import { toko } from "@/lib/toko";
 import { CatatProdukDilihat } from "@/components/ProdukTerakhirDilihat";
 import TombolBandingkan from "@/components/TombolBandingkan";
+import FormUlasan from "@/components/FormUlasan";
+import { createSupabasePublicServerClient } from "@/lib/supabase/public-server";
 
 const ambilProduk = cache(async (id) => {
   const supabase = createSupabaseServerClient();
@@ -72,6 +74,19 @@ export default async function HalamanDetailProduk({ params }) {
   }
 
   const supabase = createSupabaseServerClient();
+  const supabasePublik = createSupabasePublicServerClient();
+  const { data: ulasanData, error: errorUlasan } = await supabasePublik
+    .from("ulasan")
+    .select("id,nama,rating,komentar,created_at")
+    .eq("produk_id", id)
+    .eq("ditampilkan", true)
+    .order("created_at", { ascending: false });
+
+  if (errorUlasan) console.error("Gagal mengambil ulasan produk:", errorUlasan.message);
+  const ulasan = errorUlasan ? [] : ulasanData ?? [];
+  const rataRataRating = ulasan.length
+    ? ulasan.reduce((total, item) => total + item.rating, 0) / ulasan.length
+    : null;
 
   const adaDiskon = Number.isInteger(produk.harga_diskon) && produk.harga_diskon < produk.harga;
   const teksBadge = produk.badge === "baru" ? "Baru" : produk.badge === "terlaris" ? "Terlaris" : "";
@@ -135,6 +150,48 @@ export default async function HalamanDetailProduk({ params }) {
           )}
         </div>
       </article>
+      <section aria-labelledby="judul-ulasan" className="grid gap-8 border-t border-garis py-8 md:grid-cols-2">
+        <div className="flex flex-col gap-5">
+          <div>
+            <h2 id="judul-ulasan" className="text-2xl font-extrabold">Ulasan pembeli</h2>
+            {rataRataRating === null ? (
+              <p className="mt-2 text-teks-lembut">Belum ada ulasan untuk produk ini.</p>
+            ) : (
+              <p className="mt-2 text-teks-lembut">
+                Rata-rata <span className="font-bold text-teks">{rataRataRating.toFixed(1)} dari 5</span>
+                {" · "}{ulasan.length} ulasan
+              </p>
+            )}
+          </div>
+          {errorUlasan ? (
+            <p role="status" className="text-sm text-teks-lembut">Ulasan belum dapat dimuat saat ini.</p>
+          ) : ulasan.length > 0 ? (
+            <ul className="flex flex-col gap-4">
+              {ulasan.map((item) => (
+                <li key={item.id} className="rounded-xl border border-garis bg-latar p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-bold">{item.nama}</p>
+                    <p className="text-sm font-semibold text-harga" aria-label={`Rating ${item.rating} dari 5`}>
+                      {"★".repeat(item.rating)}{"☆".repeat(5 - item.rating)}
+                    </p>
+                  </div>
+                  <p className="mt-2 whitespace-pre-line text-teks-lembut">{item.komentar}</p>
+                  <time dateTime={item.created_at} className="mt-3 block text-xs text-teks-lembut">
+                    {new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" }).format(new Date(item.created_at))}
+                  </time>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+        <div className="flex flex-col gap-4">
+          <div>
+            <h2 className="text-xl font-bold">Tulis ulasan</h2>
+            <p className="mt-1 text-sm text-teks-lembut">Bagikan pengalaman Anda dengan produk ini.</p>
+          </div>
+          <FormUlasan produkId={produk.id} />
+        </div>
+      </section>
       {produkTerkait.length > 0 ? (
         <section aria-labelledby="judul-produk-terkait" className="flex flex-col gap-5 pb-12">
           <h2 id="judul-produk-terkait" className="text-xl font-bold">

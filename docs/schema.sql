@@ -49,6 +49,31 @@ create policy "admin_ubah_produk" on public.produk
 create policy "admin_hapus_produk" on public.produk
   for delete to authenticated using (true);
 
+-- Ulasan publik: pengunjung hanya dapat membaca ulasan yang ditampilkan dan menambahkan ulasan baru.
+create table if not exists public.ulasan (
+  id bigint generated always as identity primary key,
+  produk_id bigint not null references public.produk (id) on delete cascade,
+  nama text not null check (nama = btrim(nama) and length(nama) between 1 and 80),
+  rating smallint not null check (rating between 1 and 5),
+  komentar text not null check (komentar = btrim(komentar) and length(komentar) between 1 and 1000),
+  ditampilkan boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists ulasan_produk_tampil_dibuat
+  on public.ulasan (produk_id, ditampilkan, created_at desc);
+
+alter table public.ulasan enable row level security;
+drop policy if exists "pengunjung_baca_ulasan_tampil" on public.ulasan;
+drop policy if exists "pengunjung_kirim_ulasan" on public.ulasan;
+
+create policy "pengunjung_baca_ulasan_tampil" on public.ulasan
+  for select to anon, authenticated using (ditampilkan = true);
+
+create policy "pengunjung_kirim_ulasan" on public.ulasan
+  for insert to anon, authenticated
+  with check (ditampilkan = true);
+
 -- 3. Daftar kategori yang dikelola admin.
 create table if not exists public.kategori (
   nama text primary key check (nama = btrim(nama) and length(nama) between 1 and 80),
