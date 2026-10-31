@@ -15,6 +15,7 @@ import TombolBandingkan from "@/components/TombolBandingkan";
 import FormUlasan from "@/components/FormUlasan";
 import { createSupabasePublicServerClient } from "@/lib/supabase/public-server";
 import { slugKategori } from "@/lib/slug-kategori";
+import AsistenProduk from "@/components/AsistenProduk";
 
 const ambilProduk = cache(async (id) => {
   const supabase = createSupabaseServerClient();
@@ -191,6 +192,7 @@ export default async function HalamanDetailProduk({ params }) {
           <FormUlasan produkId={produk.id} />
         </div>
       </section>
+      <AsistenProduk produkId={produk.id} />
       {produkTerkait.length > 0 ? (
         <section aria-labelledby="judul-produk-terkait" className="flex flex-col gap-5 pb-12">
           <h2 id="judul-produk-terkait" className="text-xl font-bold">
