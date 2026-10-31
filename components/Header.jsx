@@ -9,7 +9,12 @@ export default function Header() {
         <Link href="/" className="text-lg font-extrabold tracking-tight text-utama">
           {toko.nama}
         </Link>
-        <TautanKeranjang />
+        <nav aria-label="Navigasi utama" className="flex items-center gap-4">
+          <Link href="/tentang" className="text-sm font-semibold text-teks hover:text-utama">
+            Tentang
+          </Link>
+          <TautanKeranjang />
+        </nav>
       </div>
     </header>
   );
