@@ -3,6 +3,7 @@ import NavAdmin from "@/components/NavAdmin";
 import FormProduk from "@/components/FormProduk";
 import { ubahProduk } from "@/app/admin/actions";
 import { createSupabaseSessionClient } from "@/lib/supabase/session";
+import { ambilDaftarKategori } from "@/lib/kategori";
 
 export default async function HalamanUbahProduk({ params, searchParams }) {
   const { id } = await params;
@@ -22,6 +23,8 @@ export default async function HalamanUbahProduk({ params, searchParams }) {
     notFound();
   }
 
+  const kategori = await ambilDaftarKategori(supabase);
+
   return (
     <div className="flex flex-col gap-6 py-8">
       <NavAdmin />
@@ -40,10 +43,12 @@ export default async function HalamanUbahProduk({ params, searchParams }) {
                     ? "Foto gagal diunggah. Pastikan bucket foto-produk di Supabase sudah disiapkan."
                     : statusError === "not_found"
                       ? "Produk tidak ditemukan atau sudah dihapus."
+                    : statusError === "invalid_category"
+                      ? "Pilih kategori yang tersedia atau kosongkan pilihan kategori."
                       : "Perubahan produk gagal disimpan. Periksa data dan coba lagi."}
         </p>
       ) : null}
-      <FormProduk action={ubahProduk} produk={produk} labelTombol="Simpan perubahan" />
+      <FormProduk action={ubahProduk} produk={produk} kategori={kategori} labelTombol="Simpan perubahan" />
     </div>
   );
 }

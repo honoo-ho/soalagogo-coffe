@@ -7,7 +7,7 @@ import { buatDeskripsiProduk } from "@/app/admin/actions";
 
 // Dipakai untuk tambah produk (US-08) dan ubah produk (US-09). Keduanya bonus di jalur offline.
 // Nama field sama dengan kolom tabel "produk".
-export default function FormProduk({ produk = {}, labelTombol, action }) {
+export default function FormProduk({ produk = {}, kategori = [], labelTombol, action }) {
   const formRef = useRef(null);
   const [deskripsi, setDeskripsi] = useState(produk.deskripsi ?? "");
   const [sedangMembuat, setSedangMembuat] = useState(false);
@@ -57,7 +57,19 @@ export default function FormProduk({ produk = {}, labelTombol, action }) {
         placeholder="Harus lebih rendah dari harga normal"
         defaultValue={produk.harga_diskon ?? ""}
       />
-      <Input label="Kategori" name="kategori" defaultValue={produk.kategori} />
+      <label className="flex flex-col gap-1.5 text-sm font-semibold">
+        Kategori
+        <select
+          name="kategori"
+          defaultValue={produk.kategori ?? ""}
+          className="w-full rounded-lg border border-garis bg-latar px-3 py-2.5 text-base text-teks focus:border-utama focus:outline-none"
+        >
+          <option value="">Tanpa kategori</option>
+          {kategori.map(({ nama }) => (
+            <option key={nama} value={nama}>{nama}</option>
+          ))}
+        </select>
+      </label>
       <label className="flex flex-col gap-1.5 text-sm font-semibold">
         Badge produk
         <select

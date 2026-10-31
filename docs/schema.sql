@@ -46,7 +46,27 @@ create policy "admin_ubah_produk" on public.produk
 create policy "admin_hapus_produk" on public.produk
   for delete to authenticated using (true);
 
--- 3. Supabase Storage untuk foto produk.
+-- 3. Daftar kategori yang dikelola admin.
+create table if not exists public.kategori (
+  nama text primary key check (nama = btrim(nama) and length(nama) between 1 and 80),
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists kategori_nama_tanpa_beda_huruf
+  on public.kategori (lower(nama));
+
+-- Kategori bawaan diperlukan sebelum data contoh produk dimasukkan.
+insert into public.kategori (nama)
+select bawaan.nama
+from (values
+  ('Minuman'), ('Camilan'), ('Bumbu'), ('Kue kering'), ('Kerajinan'), ('Kain')
+) as bawaan (nama)
+where not exists (
+  select 1 from public.kategori existing
+  where lower(existing.nama) = lower(bawaan.nama)
+);
+
+-- 4. Supabase Storage untuk foto produk.
 -- Bucket publik agar URL foto dapat ditampilkan di katalog; unggah/hapus dibatasi ke pengguna login.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
@@ -75,7 +95,7 @@ create policy "admin_unggah_foto_produk" on storage.objects
 create policy "admin_hapus_foto_produk" on storage.objects
   for delete to authenticated using (bucket_id = 'foto-produk');
 
--- 4. Data produk awal (hanya diisi jika tabel masih kosong)
+-- 5. Data produk awal (hanya diisi jika tabel masih kosong)
 insert into public.produk (nama, harga, deskripsi, foto_url, kategori)
 select * from (values
   ('Kopi Bubuk Robusta 250 g', 45000, 'Biji robusta disangrai sedang lalu digiling halus. Cocok untuk kopi tubruk dan kopi susu.', '/produk/kopi.svg', 'Minuman'),
@@ -87,7 +107,7 @@ select * from (values
 ) as data_awal (nama, harga, deskripsi, foto_url, kategori)
 where not exists (select 1 from public.produk);
 
--- 5. Data tambahan untuk menguji paginasi, urutan, filter, dan pencarian (54 produk).
+-- 6. Data tambahan untuk menguji paginasi, urutan, filter, dan pencarian (54 produk).
 --    Bersama data awal jadi 60 produk, 10 per kategori, dengan harga dan waktu dibuat berbeda.
 --    Hanya diisi sekali; kalau tidak dibutuhkan, hapus dengan:
 --    delete from public.produk where deskripsi like 'Contoh untuk uji paginasi%';
@@ -128,3 +148,58 @@ select
 from kategori k
 cross join lateral unnest(k.daftar) with ordinality as p (nama, ke)
 where not exists (select 1 from public.produk where deskripsi like 'Contoh untuk uji paginasi%');
+
+-- 7. Sinkronkan kategori lama dan aktifkan relasi kategori produk.
+-- Rapikan spasi dan satukan kategori yang hanya berbeda kapitalisasi.
+with nama_kategori_canonical as (
+  select distinct on (lower(btrim(kategori)))
+    lower(btrim(kategori)) as kunci,
+    btrim(kategori) as nama
+  from public.produk
+  where nullif(btrim(kategori), '') is not null
+  order by lower(btrim(kategori)), btrim(kategori)
+)
+update public.produk
+set kategori = nama_kategori_canonical.nama
+from nama_kategori_canonical
+where lower(btrim(public.produk.kategori)) = nama_kategori_canonical.kunci
+  and public.produk.kategori is distinct from nama_kategori_canonical.nama;
+
+update public.produk
+set kategori = null
+where kategori is not null and nullif(btrim(kategori), '') is null;
+
+insert into public.kategori (nama)
+select distinct kategori
+from public.produk
+where kategori is not null
+on conflict (nama) do nothing;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'produk_kategori_fkey'
+      and conrelid = 'public.produk'::regclass
+  ) then
+    alter table public.produk
+      add constraint produk_kategori_fkey
+      foreign key (kategori) references public.kategori (nama)
+      on update cascade on delete restrict;
+  end if;
+end $$;
+
+alter table public.kategori enable row level security;
+drop policy if exists "admin_baca_kategori" on public.kategori;
+drop policy if exists "admin_tambah_kategori" on public.kategori;
+drop policy if exists "admin_ubah_kategori" on public.kategori;
+drop policy if exists "admin_hapus_kategori" on public.kategori;
+
+create policy "admin_baca_kategori" on public.kategori
+  for select to authenticated using (true);
+create policy "admin_tambah_kategori" on public.kategori
+  for insert to authenticated with check (true);
+create policy "admin_ubah_kategori" on public.kategori
+  for update to authenticated using (true) with check (true);
+create policy "admin_hapus_kategori" on public.kategori
+  for delete to authenticated using (true);

@@ -95,6 +95,16 @@ async function unggahFileFoto(supabase, files, pathKembali) {
   return { urlFoto, paths };
 }
 
+async function kategoriTersedia(supabase, nama) {
+  if (!nama) return true;
+  const { data, error } = await supabase
+    .from("kategori")
+    .select("nama")
+    .eq("nama", nama)
+    .maybeSingle();
+  return !error && Boolean(data);
+}
+
 function gabungkanFotoProduk(formData, urlFoto) {
   const fotoManual = String(formData.get("foto_url") ?? "")
     .split(/\r?\n/)
@@ -192,6 +202,7 @@ export async function simpanProduk(formData) {
   const badge = badgeInput || null;
   const stokText = String(formData.get("stok") ?? "").trim();
   const stok = stokText === "" ? null : Number(stokText);
+  const kategori = String(formData.get("kategori") ?? "").trim();
 
   if (
     !nama ||
@@ -206,6 +217,10 @@ export async function simpanProduk(formData) {
     redirect("/admin/produk/baru?error=invalid_data");
   }
 
+  if (!(await kategoriTersedia(supabase, kategori))) {
+    redirect("/admin/produk/baru?error=invalid_category");
+  }
+
   const files = await validasiFileFoto(formData, "/admin/produk/baru");
   const { urlFoto, paths } = await unggahFileFoto(supabase, files, "/admin/produk/baru");
 
@@ -215,7 +230,7 @@ export async function simpanProduk(formData) {
     harga_diskon: hargaDiskon,
     badge,
     stok,
-    kategori: String(formData.get("kategori") ?? "").trim() || null,
+    kategori: kategori || null,
     foto_url: gabungkanFotoProduk(formData, urlFoto),
     deskripsi: String(formData.get("deskripsi") ?? "").trim() || null,
   };
@@ -269,6 +284,7 @@ export async function ubahProduk(formData) {
   const badge = badgeInput || null;
   const stokText = String(formData.get("stok") ?? "").trim();
   const stok = stokText === "" ? null : Number(stokText);
+  const kategori = String(formData.get("kategori") ?? "").trim();
 
   if (
     !nama ||
@@ -283,6 +299,10 @@ export async function ubahProduk(formData) {
     redirect(`${pathUbah}?error=invalid_data`);
   }
 
+  if (!(await kategoriTersedia(supabase, kategori))) {
+    redirect(`${pathUbah}?error=invalid_category`);
+  }
+
   const files = await validasiFileFoto(formData, pathUbah);
   const { urlFoto, paths } = await unggahFileFoto(supabase, files, pathUbah);
 
@@ -292,7 +312,7 @@ export async function ubahProduk(formData) {
     harga_diskon: hargaDiskon,
     badge,
     stok,
-    kategori: String(formData.get("kategori") ?? "").trim() || null,
+    kategori: kategori || null,
     foto_url: gabungkanFotoProduk(formData, urlFoto),
     deskripsi: String(formData.get("deskripsi") ?? "").trim() || null,
   };
@@ -458,4 +478,109 @@ export async function buatDeskripsiProduk(nama, kategori) {
           : "Layanan AI tidak dapat dihubungi. Periksa koneksi lalu coba lagi.",
     };
   }
+}
+
+async function clientKategoriAdmin() {
+  let supabase;
+  let user;
+
+  try {
+    supabase = await createSupabaseSessionClient();
+    const { data, error } = await supabase.auth.getUser();
+    user = error ? null : data.user;
+  } catch {
+    user = null;
+  }
+
+  if (!user) redirect("/admin/login");
+  return supabase;
+}
+
+function namaKategoriValid(nama) {
+  return nama.length > 0 && nama.length <= 80;
+}
+
+export async function tambahKategori(formData) {
+  const supabase = await clientKategoriAdmin();
+  const nama = String(formData.get("nama") ?? "").trim();
+  if (!namaKategoriValid(nama)) redirect("/admin/kategori?status=invalid_name");
+
+  let error;
+  try {
+    ({ error } = await supabase.from("kategori").insert({ nama }));
+  } catch {
+    redirect("/admin/kategori?status=save_failed");
+  }
+  if (error) {
+    redirect(`/admin/kategori?status=${error.code === "23505" ? "duplicate" : "save_failed"}`);
+  }
+  redirect("/admin/kategori?status=created");
+}
+
+export async function ubahKategori(formData) {
+  const supabase = await clientKategoriAdmin();
+  const namaLama = String(formData.get("nama_lama") ?? "").trim();
+  const namaBaru = String(formData.get("nama_baru") ?? "").trim();
+
+  if (!namaLama || !namaKategoriValid(namaBaru)) {
+    redirect("/admin/kategori?status=invalid_name");
+  }
+
+  let data;
+  let error;
+  try {
+    ({ data, error } = await supabase
+      .from("kategori")
+      .update({ nama: namaBaru })
+      .eq("nama", namaLama)
+      .select("nama")
+      .maybeSingle());
+  } catch {
+    redirect("/admin/kategori?status=save_failed");
+  }
+
+  if (error) {
+    redirect(`/admin/kategori?status=${error.code === "23505" ? "duplicate" : "save_failed"}`);
+  }
+  if (!data) redirect("/admin/kategori?status=not_found");
+  redirect("/admin/kategori?status=updated");
+}
+
+export async function hapusKategori(formData) {
+  const supabase = await clientKategoriAdmin();
+  const nama = String(formData.get("nama") ?? "").trim();
+  if (!nama) redirect("/admin/kategori?status=not_found");
+
+  let produk;
+  let errorProduk;
+  try {
+    ({ data: produk, error: errorProduk } = await supabase
+      .from("produk")
+      .select("id")
+      .eq("kategori", nama)
+      .limit(1));
+  } catch {
+    redirect("/admin/kategori?status=delete_failed");
+  }
+  if (errorProduk) redirect("/admin/kategori?status=delete_failed");
+  if (produk?.length) redirect("/admin/kategori?status=in_use");
+
+  let data;
+  let error;
+  try {
+    ({ data, error } = await supabase
+      .from("kategori")
+      .delete()
+      .eq("nama", nama)
+      .select("nama")
+      .maybeSingle());
+  } catch {
+    redirect("/admin/kategori?status=delete_failed");
+  }
+
+  if (error) {
+    redirect(`/admin/kategori?status=${error.code === "23503" ? "in_use" : "delete_failed"}`);
+  }
+  if (!data) redirect("/admin/kategori?status=not_found");
+  redirect("/admin/kategori?status=deleted");
 }

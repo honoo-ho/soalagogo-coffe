@@ -1,9 +1,13 @@
 import NavAdmin from "@/components/NavAdmin";
 import FormProduk from "@/components/FormProduk";
 import { simpanProduk } from "@/app/admin/actions";
+import { createSupabaseSessionClient } from "@/lib/supabase/session";
+import { ambilDaftarKategori } from "@/lib/kategori";
 
 export default async function HalamanTambahProduk({ searchParams }) {
   const { error } = await searchParams;
+  const supabase = await createSupabaseSessionClient();
+  const kategori = await ambilDaftarKategori(supabase);
 
   return (
     <div className="flex flex-col gap-6 py-8">
@@ -21,10 +25,12 @@ export default async function HalamanTambahProduk({ searchParams }) {
                   ? "Pilih maksimal 10 foto dalam satu kali unggah."
                   : error === "upload_failed"
                     ? "Foto gagal diunggah. Pastikan bucket foto-produk di Supabase sudah disiapkan."
-                    : "Produk gagal disimpan. Periksa data dan coba lagi."}
+            : error === "invalid_category"
+              ? "Pilih kategori yang tersedia atau kosongkan pilihan kategori."
+              : "Produk gagal disimpan. Periksa data dan coba lagi."}
         </p>
       ) : null}
-      <FormProduk action={simpanProduk} labelTombol="Simpan produk" />
+      <FormProduk action={simpanProduk} kategori={kategori} labelTombol="Simpan produk" />
     </div>
   );
 }
