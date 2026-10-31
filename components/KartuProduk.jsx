@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { formatRupiah } from "@/lib/format";
+import { ambilFotoProduk } from "@/lib/foto-produk";
 
 export default function KartuProduk({ produk }) {
+  const fotoUtama = ambilFotoProduk(produk.foto_url)[0] ?? "";
+
   return (
     <Link
       href={`/produk/${produk.id}`}
       className="group flex flex-col overflow-hidden rounded-2xl border border-garis bg-latar"
     >
       <img
-        src={produk.foto_url}
+        src={fotoUtama}
         alt={produk.nama}
         className="aspect-square w-full bg-permukaan object-cover"
       />

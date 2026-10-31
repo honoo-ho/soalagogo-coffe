@@ -50,9 +50,10 @@ export default function FormProduk({ produk = {}, labelTombol, action }) {
       />
       <Input label="Kategori" name="kategori" defaultValue={produk.kategori} />
       <Input
-        label="Link foto"
+        label="Link foto (satu per baris)"
         name="foto_url"
-        placeholder="https://... atau /produk/nama-file.svg"
+        textarea
+        placeholder={"https://.../foto-depan.jpg\nhttps://.../foto-samping.jpg"}
         defaultValue={produk.foto_url}
       />
       <div className="flex flex-col items-start gap-2">
