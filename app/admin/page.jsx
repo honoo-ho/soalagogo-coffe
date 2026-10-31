@@ -20,6 +20,8 @@ export default async function HalamanAdmin({ searchParams }) {
   let totalHalaman = 1;
   let halamanAktif = halamanDiminta;
   let errorQuery = null;
+  let produkTerlaris = [];
+  let errorKlik = false;
 
   try {
     const supabase = await createSupabaseSessionClient();
@@ -84,6 +86,59 @@ export default async function HalamanAdmin({ searchParams }) {
     }
 
     daftarProduk = hasilDaftar.data ?? [];
+
+    try {
+      let hasilKlik = await supabase
+        .from("klik_whatsapp")
+        .select("produk_id", { count: "exact" })
+        .order("id", { ascending: true })
+        .range(0, UKURAN_BATCH - 1);
+
+      if (hasilKlik.error) throw hasilKlik.error;
+
+      const jumlahKlik = hasilKlik.count ?? 0;
+      const hitungKlik = new Map();
+      let awalKlik = 0;
+
+      while (true) {
+        const batch = hasilKlik.data ?? [];
+        for (const klik of batch) {
+          const id = String(klik.produk_id);
+          hitungKlik.set(id, (hitungKlik.get(id) ?? 0) + 1);
+        }
+
+        awalKlik += batch.length;
+        if (awalKlik >= jumlahKlik || batch.length < UKURAN_BATCH) break;
+
+        hasilKlik = await supabase
+          .from("klik_whatsapp")
+          .select("produk_id")
+          .order("id", { ascending: true })
+          .range(awalKlik, awalKlik + UKURAN_BATCH - 1);
+        if (hasilKlik.error) throw hasilKlik.error;
+      }
+
+      const teratas = [...hitungKlik.entries()]
+        .sort(([idA, jumlahA], [idB, jumlahB]) => jumlahB - jumlahA || Number(idA) - Number(idB))
+        .slice(0, 5);
+
+      if (teratas.length > 0) {
+        const { data: produk, error: errorProduk } = await supabase
+          .from("produk")
+          .select("id,nama")
+          .in("id", teratas.map(([id]) => id));
+
+        if (errorProduk) throw errorProduk;
+        const namaProduk = new Map((produk ?? []).map((item) => [String(item.id), item.nama]));
+        produkTerlaris = teratas
+          .filter(([id]) => namaProduk.has(id))
+          .map(([id, jumlah]) => ({ id, nama: namaProduk.get(id), jumlah }));
+      }
+    } catch (error) {
+      console.error("Gagal mengambil ringkasan klik WhatsApp:", error?.message ?? error);
+      errorKlik = true;
+      produkTerlaris = [];
+    }
   } catch (error) {
     console.error("Gagal mengambil daftar produk admin:", error?.message ?? error);
     errorQuery = error;
@@ -152,6 +207,35 @@ export default async function HalamanAdmin({ searchParams }) {
                 </article>
               ))}
             </div>
+          </section>
+          <section aria-labelledby="judul-produk-terlaris" className="flex flex-col gap-4">
+            <div>
+              <h2 id="judul-produk-terlaris" className="text-xl font-bold">Produk terlaris</h2>
+              <p className="mt-1 text-sm text-teks-lembut">Berdasarkan jumlah klik tombol pesan WhatsApp.</p>
+            </div>
+            {errorKlik ? (
+              <p role="alert" className="text-sm text-bahaya">
+                Data klik pesan gagal dimuat. Periksa koneksi database lalu muat ulang halaman.
+              </p>
+            ) : produkTerlaris.length === 0 ? (
+              <p className="text-teks-lembut">Belum ada klik pesan WhatsApp yang tercatat.</p>
+            ) : (
+              <ol className="flex flex-col divide-y divide-garis rounded-xl border border-garis">
+                {produkTerlaris.map((produk, index) => (
+                  <li key={produk.id} className="flex items-center justify-between gap-4 p-4">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-permukaan text-sm font-bold">
+                        {index + 1}
+                      </span>
+                      <p className="truncate font-semibold">{produk.nama}</p>
+                    </div>
+                    <p className="shrink-0 text-sm font-bold text-utama">
+                      {produk.jumlah} klik
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            )}
           </section>
           <section aria-labelledby="judul-daftar-produk" className="flex flex-col gap-4">
             <h2 id="judul-daftar-produk" className="text-xl font-bold">Daftar produk</h2>
