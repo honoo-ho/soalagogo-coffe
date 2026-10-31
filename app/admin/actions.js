@@ -86,14 +86,23 @@ export async function simpanProduk(formData) {
   const nama = String(formData.get("nama") ?? "").trim();
   const hargaText = String(formData.get("harga") ?? "").trim();
   const harga = Number(hargaText);
+  const stokText = String(formData.get("stok") ?? "").trim();
+  const stok = stokText === "" ? null : Number(stokText);
 
-  if (!nama || !hargaText || !Number.isInteger(harga) || harga < 0) {
+  if (
+    !nama ||
+    !hargaText ||
+    !Number.isInteger(harga) ||
+    harga < 0 ||
+    (stok !== null && (!Number.isInteger(stok) || stok < 0))
+  ) {
     redirect("/admin/produk/baru?error=invalid_data");
   }
 
   const produk = {
     nama,
     harga,
+    stok,
     kategori: String(formData.get("kategori") ?? "").trim() || null,
     foto_url: String(formData.get("foto_url") ?? "").trim() || null,
     deskripsi: String(formData.get("deskripsi") ?? "").trim() || null,
@@ -140,14 +149,23 @@ export async function ubahProduk(formData) {
   const nama = String(formData.get("nama") ?? "").trim();
   const hargaText = String(formData.get("harga") ?? "").trim();
   const harga = Number(hargaText);
+  const stokText = String(formData.get("stok") ?? "").trim();
+  const stok = stokText === "" ? null : Number(stokText);
 
-  if (!nama || !hargaText || !Number.isInteger(harga) || harga < 0) {
+  if (
+    !nama ||
+    !hargaText ||
+    !Number.isInteger(harga) ||
+    harga < 0 ||
+    (stok !== null && (!Number.isInteger(stok) || stok < 0))
+  ) {
     redirect(`${pathUbah}?error=invalid_data`);
   }
 
   const perubahan = {
     nama,
     harga,
+    stok,
     kategori: String(formData.get("kategori") ?? "").trim() || null,
     foto_url: String(formData.get("foto_url") ?? "").trim() || null,
     deskripsi: String(formData.get("deskripsi") ?? "").trim() || null,

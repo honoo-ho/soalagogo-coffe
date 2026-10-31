@@ -54,8 +54,13 @@ export default async function HalamanDetailProduk({ params }) {
           <p className="self-start rounded-md bg-harga-latar px-3 py-1 text-xl font-bold text-harga">
             {formatRupiah(produk.harga)}
           </p>
+          {produk.stok === 0 ? (
+            <p className="self-start rounded-md bg-harga-latar px-3 py-1 text-sm font-bold text-bahaya">
+              Habis
+            </p>
+          ) : null}
           <p className="max-w-prose leading-relaxed text-teks-lembut">{produk.deskripsi}</p>
-          <TombolWhatsApp produk={produk} />
+          {produk.stok === 0 ? null : <TombolWhatsApp produk={produk} />}
         </div>
       </article>
       {produkTerkait.length > 0 ? (

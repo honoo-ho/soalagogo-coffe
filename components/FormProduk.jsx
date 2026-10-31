@@ -50,6 +50,15 @@ export default function FormProduk({ produk = {}, labelTombol, action }) {
       />
       <Input label="Kategori" name="kategori" defaultValue={produk.kategori} />
       <Input
+        label="Stok (opsional)"
+        name="stok"
+        type="number"
+        min="0"
+        step="1"
+        placeholder="Kosongkan jika belum diatur"
+        defaultValue={produk.stok ?? ""}
+      />
+      <Input
         label="Link foto (satu per baris)"
         name="foto_url"
         textarea

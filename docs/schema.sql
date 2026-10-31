@@ -10,8 +10,13 @@ create table if not exists public.produk (
   deskripsi text,
   foto_url text,
   kategori text,
+  stok integer check (stok >= 0),
   created_at timestamptz not null default now()
 );
+
+-- Tambahkan kolom stok untuk tabel produk yang sudah dibuat sebelumnya.
+alter table public.produk
+  add column if not exists stok integer check (stok >= 0);
 
 -- 2. Row Level Security
 -- Tidak ada izin untuk publik: akses langsung ke tabel dari luar aplikasi ditolak.
