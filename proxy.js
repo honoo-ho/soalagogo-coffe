@@ -77,6 +77,57 @@ export async function proxy(request) {
     }
   }
 
+  const matchProduk = pathname.match(/^\/produk\/([^/]+)$/);
+  if (request.method === "GET" && matchProduk) {
+    const rawId = matchProduk[1];
+    let adaProduk = false;
+    if (/^\d+$/.test(rawId)) {
+      try {
+        const idNum = BigInt(rawId);
+        if (idNum > 0n && idNum <= 9223372036854775807n) {
+          const supabaseUrl = process.env.SUPABASE_URL;
+          const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
+          if (supabaseUrl && supabaseSecretKey) {
+            const { createClient } = await import("@supabase/supabase-js");
+            const sb = createClient(supabaseUrl, supabaseSecretKey);
+            const { data, error } = await sb
+              .from("produk")
+              .select("id")
+              .eq("id", rawId)
+              .eq("aktif", true)
+              .maybeSingle();
+            if (error) {
+              // Database error – respond with 503 Service Unavailable
+              return new NextResponse("Service Unavailable", {
+                status: 503,
+                headers: { "Content-Security-Policy": contentSecurityPolicy },
+              });
+            }
+            adaProduk = Boolean(data);
+          } else {
+            // Missing Supabase credentials – treat as server issue
+            return new NextResponse("Service Unavailable", {
+              status: 503,
+              headers: { "Content-Security-Policy": contentSecurityPolicy },
+            });
+          }
+        }
+      } catch {
+        adaProduk = false;
+      }
+    }
+
+    if (!adaProduk) {
+      const notFoundRes = NextResponse.rewrite(new URL("/_not-found", request.url), {
+        status: 404,
+        headers: {
+          "Content-Security-Policy": contentSecurityPolicy,
+        },
+      });
+      return notFoundRes;
+    }
+  }
+
   const perluLogin = pathname.startsWith("/admin/") || pathname === "/admin";
   if (!perluLogin || pathname === "/admin/login") return buatResponse();
 
