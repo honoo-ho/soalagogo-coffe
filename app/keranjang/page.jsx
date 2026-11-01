@@ -5,6 +5,7 @@ import { formatRupiah } from "@/lib/format";
 import { catatKlikWhatsApp } from "@/lib/catat-klik-whatsapp";
 import { useKeranjang } from "@/components/KeranjangProvider";
 import { usePengaturanToko } from "@/components/PengaturanTokoProvider";
+import { toko } from "@/lib/toko";
 import Tombol from "@/components/Tombol";
 import {
   buatPesanKeranjang,
@@ -20,7 +21,8 @@ export default function HalamanKeranjang() {
   const pengaturanToko = usePengaturanToko();
   const total = totalKeranjang(itemKeranjang);
   const pesan = useMemo(() => buatPesanKeranjang(itemKeranjang, formatRupiah), [itemKeranjang]);
-  const tautanWhatsApp = `https://wa.me/${pengaturanToko.nomorWhatsApp}?text=${encodeURIComponent(pesan)}`;
+  const nomorWhatsApp = pengaturanToko?.nomorWhatsApp || toko.nomorWhatsApp;
+  const tautanWhatsApp = `https://wa.me/${nomorWhatsApp}?text=${encodeURIComponent(pesan)}`;
 
   if (!siap) {
     return <section className="py-8"><h1 className="text-2xl font-extrabold">Keranjang</h1></section>;
@@ -34,33 +36,40 @@ export default function HalamanKeranjang() {
       ) : (
         <>
           <ul className="flex flex-col divide-y divide-garis border-y border-garis">
-            {itemKeranjang.map((item) => (
-              <li key={kunciItemKeranjang(item)} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h2 className="font-semibold">{namaItemKeranjang(item)}</h2>
-                  <p className="text-sm text-teks-lembut">
-                    {formatRupiah(hargaAktifItemKeranjang(item))} per item
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-2 text-sm">
-                    Jumlah
-                    <input
-                      type="number"
-                      min="1"
-                      max={item.stok ?? undefined}
-                      value={item.jumlah}
-                      onChange={(event) => ubahJumlah(kunciItemKeranjang(item), event.target.value)}
-                      className="w-20 rounded-lg border border-garis bg-latar px-2 py-2 text-teks"
-                    />
-                  </label>
-                  <p className="min-w-28 text-right font-bold">{formatRupiah(subtotalItemKeranjang(item))}</p>
-                  <button type="button" onClick={() => hapus(kunciItemKeranjang(item))} className="text-sm font-semibold text-bahaya hover:underline">
-                    Hapus
-                  </button>
-                </div>
-              </li>
-            ))}
+            {itemKeranjang.map((item) => {
+              const kunci = kunciItemKeranjang(item);
+              return (
+                <li key={kunci} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="font-semibold">{namaItemKeranjang(item)}</h2>
+                    <p className="text-sm text-teks-lembut">
+                      {formatRupiah(hargaAktifItemKeranjang(item))} per item
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 text-sm">
+                      Jumlah
+                      <input
+                        type="number"
+                        min="1"
+                        max={item.stok ?? undefined}
+                        value={item.jumlah}
+                        onChange={(event) => ubahJumlah(kunci, event.target.value)}
+                        className="w-20 rounded-lg border border-garis bg-latar px-2 py-2 text-teks"
+                      />
+                    </label>
+                    <p className="min-w-28 text-right font-bold">{formatRupiah(subtotalItemKeranjang(item))}</p>
+                    <button
+                      type="button"
+                      onClick={() => hapus(kunci)}
+                      className="text-sm font-semibold text-bahaya hover:underline"
+                    >
+                      Hapus
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
           <p className="self-end text-lg font-extrabold">Total: {formatRupiah(total)}</p>
           <a

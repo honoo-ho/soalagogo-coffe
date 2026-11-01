@@ -20,7 +20,28 @@ export function KeranjangProvider({ children }) {
     try {
       const tersimpan = JSON.parse(window.localStorage.getItem(KUNCI_KERANJANG) ?? "[]");
       if (Array.isArray(tersimpan)) {
-        setItemKeranjang(tersimpan.map(normalisasiItemKeranjang).filter((item) => item && item.jumlah > 0));
+        const itemTervalidasi = tersimpan
+          .map(normalisasiItemKeranjang)
+          .filter((item) => item && item.jumlah > 0);
+
+        const itemUnik = itemTervalidasi.reduce((daftar, item) => {
+          const kunci = kunciItemKeranjang(item);
+          const indexAda = daftar.findIndex((d) => kunciItemKeranjang(d) === kunci);
+          if (indexAda !== -1) {
+            const saatIni = daftar[indexAda];
+            const stok = item.stok ?? saatIni.stok;
+            const jumlahGabung = saatIni.jumlah + item.jumlah;
+            daftar[indexAda] = {
+              ...saatIni,
+              stok,
+              jumlah: Math.min(jumlahGabung, stok ?? jumlahGabung),
+            };
+            return daftar;
+          }
+          return [...daftar, item];
+        }, []);
+
+        setItemKeranjang(itemUnik);
       }
     } catch {
       setItemKeranjang([]);

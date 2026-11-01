@@ -6,8 +6,8 @@ import TombolWhatsApp from "@/components/TombolWhatsApp";
 import TambahKeKeranjang from "@/components/TambahKeKeranjang";
 
 export default function PilihanVarianProduk({ produk, varian = [] }) {
-  const [varianId, setVarianId] = useState(varian[0]?.id ? String(varian[0].id) : "");
-  const varianDipilih = varian.find((item) => String(item.id) === varianId) ?? null;
+  const [varianId, setVarianId] = useState(varian[0]?.id != null ? String(varian[0].id) : "");
+  const varianDipilih = varian.find((item) => String(item.id) === varianId) ?? (varian.length > 0 ? varian[0] : null);
   const hargaAktif = varianDipilih?.harga ?? (
     Number.isInteger(produk.harga_diskon) && produk.harga_diskon < produk.harga
       ? produk.harga_diskon
@@ -30,7 +30,7 @@ export default function PilihanVarianProduk({ produk, varian = [] }) {
         <label className="flex flex-col gap-1.5 text-sm font-semibold">
           Pilih ukuran
           <select
-            value={varianId}
+            value={varianId || (varian[0]?.id != null ? String(varian[0].id) : "")}
             onChange={(event) => setVarianId(event.target.value)}
             className="rounded-lg border border-garis bg-latar px-3 py-2.5 text-base text-teks focus:border-utama focus:outline-none"
           >

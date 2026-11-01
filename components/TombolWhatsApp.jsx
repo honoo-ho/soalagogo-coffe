@@ -4,6 +4,7 @@ import { useState } from "react";
 import { formatRupiah } from "@/lib/format";
 import { catatKlikWhatsApp } from "@/lib/catat-klik-whatsapp";
 import { usePengaturanToko } from "@/components/PengaturanTokoProvider";
+import { toko } from "@/lib/toko";
 
 export default function TombolWhatsApp({ produk, varian = null }) {
   const [jumlah, setJumlah] = useState(1);
@@ -16,7 +17,8 @@ export default function TombolWhatsApp({ produk, varian = null }) {
   const totalHarga = hargaAktif * jumlah;
   const teksVarian = varian ? ` Varian: ${varian.nama}.` : "";
   const pesan = `Halo, saya ingin memesan ${produk.nama}.${teksVarian} Jumlah: ${jumlah}. Harga satuan: ${formatRupiah(hargaAktif)}. Total: ${formatRupiah(totalHarga)}.`;
-  const tautanWhatsApp = `https://wa.me/${pengaturanToko.nomorWhatsApp}?text=${encodeURIComponent(pesan)}`;
+  const nomorWhatsApp = pengaturanToko?.nomorWhatsApp || toko.nomorWhatsApp;
+  const tautanWhatsApp = `https://wa.me/${nomorWhatsApp}?text=${encodeURIComponent(pesan)}`;
 
   return (
     <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-end">
