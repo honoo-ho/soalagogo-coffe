@@ -14,8 +14,15 @@ export default function PilihanVarianProduk({ produk, varian = [] }) {
       : produk.harga
   );
   const produkUntukKeranjang = varianDipilih
-    ? { ...produk, harga: varianDipilih.harga, harga_diskon: null, nama: `${produk.nama} (${varianDipilih.nama})` }
-    : produk;
+    ? {
+        ...produk,
+        nama_produk: produk.nama,
+        nama_varian: varianDipilih.nama,
+        varian_id: String(varianDipilih.id),
+        harga: varianDipilih.harga,
+        harga_diskon: null,
+      }
+    : { ...produk, nama_produk: produk.nama, nama_varian: null, varian_id: null };
 
   return (
     <div className="flex flex-col items-start gap-4">
