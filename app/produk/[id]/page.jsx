@@ -18,6 +18,19 @@ import { createSupabasePublicServerClient } from "@/lib/supabase/public-server";
 import { slugKategori } from "@/lib/slug-kategori";
 import AsistenProduk from "@/components/AsistenProduk";
 
+const ID_BIGINT_MAKS = 9223372036854775807n;
+
+function idProdukValid(id) {
+  if (typeof id !== "string" || !/^\d+$/.test(id)) return false;
+
+  try {
+    const nilai = BigInt(id);
+    return nilai > 0n && nilai <= ID_BIGINT_MAKS;
+  } catch {
+    return false;
+  }
+}
+
 const ambilProduk = cache(async (id) => {
   const supabase = createSupabaseServerClient();
   const { data, error } = await supabase
@@ -33,6 +46,7 @@ const ambilProduk = cache(async (id) => {
 
 export async function generateMetadata({ params }) {
   const { id } = await params;
+  if (!idProdukValid(id)) notFound();
   const produk = await ambilProduk(id);
   if (!produk) notFound();
   const pengaturanToko = await ambilPengaturanToko();
@@ -69,6 +83,7 @@ export async function generateMetadata({ params }) {
 
 export default async function HalamanDetailProduk({ params }) {
   const { id } = await params;
+  if (!idProdukValid(id)) notFound();
   const produk = await ambilProduk(id);
 
   if (!produk) {

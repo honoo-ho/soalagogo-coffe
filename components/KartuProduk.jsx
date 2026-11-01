@@ -4,7 +4,7 @@ import { ambilFotoProduk } from "@/lib/foto-produk";
 import { slugKategori } from "@/lib/slug-kategori";
 
 export default function KartuProduk({ produk }) {
-  const fotoUtama = ambilFotoProduk(produk.foto_url)[0] ?? "";
+  const fotoUtama = ambilFotoProduk(produk.foto_url)[0];
   const adaDiskon = Number.isInteger(produk.harga_diskon) && produk.harga_diskon < produk.harga;
   const teksBadge = produk.badge === "baru" ? "Baru" : produk.badge === "terlaris" ? "Terlaris" : "";
 
@@ -13,11 +13,21 @@ export default function KartuProduk({ produk }) {
       className="group flex flex-col overflow-hidden rounded-2xl border border-garis bg-latar"
     >
       <Link href={`/produk/${produk.id}`} aria-label={`Lihat ${produk.nama}`}>
-        <img
-          src={fotoUtama}
-          alt={produk.nama}
-          className="aspect-square w-full bg-permukaan object-cover"
-        />
+        {fotoUtama ? (
+          <img
+            src={fotoUtama}
+            alt={produk.nama}
+            className="aspect-square w-full bg-permukaan object-cover"
+          />
+        ) : (
+          <div
+            role="img"
+            aria-label={`Foto ${produk.nama} belum tersedia`}
+            className="flex aspect-square w-full items-center justify-center bg-permukaan p-4 text-center text-sm text-teks-lembut"
+          >
+            Foto belum tersedia
+          </div>
+        )}
       </Link>
       <div className="flex flex-1 flex-col gap-2 p-3">
         {produk.kategori ? (
