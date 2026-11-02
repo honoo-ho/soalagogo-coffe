@@ -2,7 +2,7 @@ import NavAdmin from "@/components/NavAdmin";
 import { logServerError } from "@/lib/log-error";
 import Input from "@/components/Input";
 import Tombol from "@/components/Tombol";
-import { hapusAdmin, ubahStatusAdmin, undangAdmin } from "@/app/admin/actions";
+import { hapusAdmin, ubahStatusAdmin, undangAdmin } from "@/app/admin/akun/actions";
 import { createSupabaseSessionClient } from "@/lib/supabase/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 

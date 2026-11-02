@@ -1,7 +1,7 @@
 import NavAdmin from "@/components/NavAdmin";
 import Input from "@/components/Input";
 import Tombol from "@/components/Tombol";
-import { simpanPengaturanToko } from "@/app/admin/actions";
+import { simpanPengaturanToko } from "@/app/admin/pengaturan/actions";
 import { createSupabaseSessionClient } from "@/lib/supabase/session";
 import { toko } from "@/lib/toko";
 import { logServerError } from "@/lib/log-error";

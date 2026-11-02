@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { imporProduk } from "@/app/admin/actions";
+import { imporProduk } from "@/app/admin/impor/actions";
 import Tombol from "@/components/Tombol";
 
 const STATE_AWAL = { message: "", successCount: 0, failedCount: 0, errors: [] };
