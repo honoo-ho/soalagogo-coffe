@@ -727,35 +727,40 @@ export async function buatDeskripsiProduk(nama, kategori) {
     return { error: "Kategori maksimal 80 karakter." };
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return { error: "Fitur bantuan deskripsi belum tersedia. Silakan coba lagi nanti." };
   }
 
   try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+        "x-goog-api-key": apiKey,
       },
       body: JSON.stringify({
-        model: "gpt-6-luna",
-        reasoning: { effort: "none" },
-        instructions:
-          "Tulis deskripsi produk singkat dalam bahasa Indonesia, 1 sampai 3 kalimat. Gunakan hanya informasi dari nama dan kategori yang diberikan. Jangan mengarang bahan, ukuran, asal, manfaat, stok, atau klaim lain yang tidak disebutkan. Kembalikan hanya teks deskripsi.",
+        model: "gemini-3.8-flash",
+        system_instruction:
+          "Tulis deskripsi produk yang menarik dan wajar dalam bahasa Indonesia, 1 sampai 3 kalimat. Gunakan hanya nama dan kategori yang diberikan. Jangan mengarang bahan, komposisi, ukuran, asal, manfaat, stok, atau klaim lain. Kembalikan hanya teks deskripsi tanpa judul atau daftar.",
         input: `Nama produk: ${namaProduk}\nKategori: ${kategoriProduk || "Tidak disebutkan"}`,
-        max_output_tokens: 180,
+        generation_config: { max_output_tokens: 220, thinking_level: "minimal" },
         store: false,
       }),
       signal: AbortSignal.timeout(20000),
       cache: "no-store",
     });
 
-    const hasil = await response.json();
+    let hasil;
+    try {
+      hasil = await response.json();
+    } catch {
+      logServerError("Gemini API gagal membuat deskripsi:", response.status);
+      return { error: "Respons AI tidak dapat dibaca. Silakan coba lagi nanti." };
+    }
 
     if (!response.ok) {
-      logServerError("OpenAI API gagal membuat deskripsi:", response.status, hasil?.error?.code);
+      logServerError("Gemini API gagal membuat deskripsi:", response.status);
       return {
         error:
           response.status === 429
@@ -764,23 +769,27 @@ export async function buatDeskripsiProduk(nama, kategori) {
       };
     }
 
-    const deskripsi = (hasil.output ?? [])
-      .flatMap((item) => item.content ?? [])
-      .filter((item) => item.type === "output_text")
-      .map((item) => item.text)
-      .join("\n")
-      .trim();
+    const deskripsi = typeof hasil?.output_text === "string" ? hasil.output_text.trim() : "";
 
     if (!deskripsi) {
       return { error: "AI tidak menghasilkan deskripsi. Silakan coba lagi." };
     }
 
+    if (deskripsi.length > 1200) {
+      return { error: "Deskripsi dari AI terlalu panjang. Silakan coba lagi." };
+    }
+
+    const jumlahKalimat = deskripsi.split(/(?<=[.!?])\s+/u).filter(Boolean).length;
+    if (jumlahKalimat < 1 || jumlahKalimat > 3) {
+      return { error: "Format deskripsi AI tidak sesuai. Silakan coba lagi." };
+    }
+
     return { description: deskripsi };
   } catch (error) {
-    logServerError("Permintaan deskripsi AI gagal:", error);
+    logServerError("Permintaan deskripsi Gemini gagal:", error?.name === "TimeoutError" ? 504 : 0);
     return {
       error:
-        error?.name === "TimeoutError"
+        error?.name === "TimeoutError" || error?.name === "AbortError"
           ? "Permintaan AI melewati batas waktu. Silakan coba lagi."
           : "Layanan AI tidak dapat dihubungi. Periksa koneksi lalu coba lagi.",
     };
