@@ -22,7 +22,7 @@ export default async function HalamanAktivitasAdmin() {
       .select("id,admin_id,admin_email,aksi,produk_id,nama_produk,created_at")
       .order("created_at", { ascending: false })
       .order("id", { ascending: false })
-      .limit(50);
+      .limit(200);
 
     if (error) throw error;
     daftarLog = data ?? [];

@@ -180,7 +180,7 @@ export async function tanyaAsistenProduk(_state, formData) {
     return { error: "Informasi produk belum dapat dimuat. Silakan coba lagi nanti.", values };
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return { error: "Asisten produk belum dikonfigurasi. Silakan hubungi pemilik toko.", values };
   }
@@ -195,7 +195,7 @@ export async function tanyaAsistenProduk(_state, formData) {
   ].filter(Boolean).join("\n");
 
   try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
+    const response = await fetch("https://api.gemini.com/v1/responses", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -220,7 +220,7 @@ export async function tanyaAsistenProduk(_state, formData) {
       return { error: "Layanan asisten memberi respons yang tidak dapat dibaca. Coba lagi nanti.", values };
     }
     if (!response.ok) {
-      logServerError("OpenAI gagal menjawab pertanyaan produk:", response.status, hasil?.error?.code);
+      logServerError("Gemini AI gagal menjawab pertanyaan produk:", response.status, hasil?.error?.code);
       return {
         error: response.status === 429
           ? "Asisten sedang sibuk. Silakan coba lagi beberapa saat."
